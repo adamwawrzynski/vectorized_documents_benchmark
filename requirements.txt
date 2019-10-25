@@ -1,0 +1,7 @@
+pandas
+gensim
+bs4
+logging
+pickle
+abc
+sklearn
