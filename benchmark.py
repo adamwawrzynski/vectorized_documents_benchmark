@@ -54,13 +54,13 @@ model = Doc2VecDMModel(
     workers=cores,
     min_count=2)
 
-if not os.path.isfile(os.path.join(args.models_path, model.__class__.__name__ + "_knn.pickle")):
+if not model.can_load(args.models_path):
     model.train(train['text'], y_train['target'])
     model.fit(train['text'], y_train['target'])
 
-    model.save(os.path.join(args.models_path, model.__class__.__name__))
+    model.save(args.models_path)
 else:
-    model.load(os.path.join(args.models_path, model.__class__.__name__))
+    model.load(args.models_path)
 
 model.evaluate(test['text'], y_test['target'])
 
@@ -72,13 +72,13 @@ model = Doc2VecDBOWModel(
     min_count=2)
 
 
-if not os.path.isfile(os.path.join(args.models_path, model.__class__.__name__ + "_knn.pickle")):
+if not model.can_load(args.models_path):
     model.train(train['text'], y_train['target'])
     model.fit(train['text'], y_train['target'])
 
-    model.save(os.path.join(args.models_path, model.__class__.__name__))
+    model.save(args.models_path)
 else:
-    model.load(os.path.join(args.models_path, model.__class__.__name__))
+    model.load(args.models_path)
 
 model.evaluate(test['text'], y_test['target'])
 
@@ -89,13 +89,13 @@ model = LDAModel(
     epochs=100,
     cores=cores)
 
-if not os.path.isfile(os.path.join(args.models_path, model.__class__.__name__ + "_knn.pickle")):
+if not model.can_load(args.models_path):
     model.train(train['text'])
     model.fit(train['text'], y_train['target'])
 
-    model.save(os.path.join(args.models_path, model.__class__.__name__))
+    model.save(args.models_path)
 else:
-    model.load(os.path.join(args.models_path, model.__class__.__name__))
+    model.load(args.models_path)
 
 result = model.evaluate(test['text'], y_test['target'])
 
@@ -104,13 +104,13 @@ model = TfIdfModel(
     max_df=0.75,
     min_df=7)
 
-if not os.path.isfile(os.path.join(args.models_path, model.__class__.__name__ + "_knn.pickle")):
+if not model.can_load(args.models_path):
     model.train(train['text'])
     model.fit(train['text'], y_train['target'])
 
-    model.save(os.path.join(args.models_path, model.__class__.__name__))
+    model.save(args.models_path)
 else:
-    model.load(os.path.join(args.models_path, model.__class__.__name__))
+    model.load(args.models_path)
 
 model.evaluate(test['text'], y_test['target'])
 
@@ -123,12 +123,12 @@ model = LSAModel(
     max_df=0.75,
     min_df=7)
 
-if not os.path.isfile(os.path.join(args.models_path, model.__class__.__name__ + "_knn.pickle")):
+if not model.can_load(args.models_path):
     model.train(train['text'])
     model.fit(train['text'], y_train['target'])
 
-    model.save(os.path.join(args.models_path, model.__class__.__name__))
+    model.save(args.models_path)
 else:
-    model.load(os.path.join(args.models_path, model.__class__.__name__))
+    model.load(args.models_path)
 
 model.evaluate(test['text'], y_test['target'])

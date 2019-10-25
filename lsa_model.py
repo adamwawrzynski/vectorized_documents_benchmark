@@ -1,6 +1,7 @@
 import logging
 import time
 import pickle
+import os
 from benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
@@ -51,17 +52,34 @@ class LSAModel(BenchmarkModel):
         name
     ):
         logging.info("Saving " + self.__class__.__name__)
-        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
-        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
-        pickle.dump(self.tfidf_vectorizer.vocabulary_, open(name+"_vec.pickle", 'wb'))
-        pickle.dump(self.tfidf_vectorizer.idf_, open(name+"_vec_idf.pickle", 'wb'))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        pickle.dump(self.knn,
+            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.model,
+            open(combined_path + "_model.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.vocabulary_,
+            open(combined_path + "_vec.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.idf_,
+            open(combined_path + "_vec_idf.pickle", 'wb'))
 
     def load(
         self,
-        name
+        path
     ):
         logging.info("Loading " + self.__class__.__name__)
-        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
-        self.model = pickle.load(open(name+"_model.pickle", 'rb'))
-        self.tfidf_vectorizer = TfidfVectorizer(vocabulary=pickle.load(open(name+"_vec.pickle", 'rb')))
-        self.tfidf_vectorizer.idf_ = pickle.load(open(name+"_vec_idf.pickle", 'rb'))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        self.knn = pickle.load(
+            open(combined_path + "_knn.pickle", 'rb'))
+        self.model = pickle.load(
+            open(combined_path + "_model.pickle", 'rb'))
+        self.tfidf_vectorizer = TfidfVectorizer(
+            vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
+        self.tfidf_vectorizer.idf_ = pickle.load(
+            open(combined_path + "_vec_idf.pickle", 'rb'))
+
+    def can_load(
+        self,
+        path
+    ):
+        combined_path = os.path.join(path, self.__class__.__name__)
+        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "_model.pickle") and os.path.isfile(combined_path + "_vec.pickle") and os.path.isfile(combined_path + "_vec_idf.pickle")

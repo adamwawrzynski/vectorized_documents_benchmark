@@ -1,6 +1,7 @@
 import logging
 import time
 import pickle
+import os
 from benchmark_model import BenchmarkModel
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -57,15 +58,30 @@ class LDAModel(BenchmarkModel):
         name
     ):
         logging.info("Saving " + self.__class__.__name__)
-        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
-        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
-        pickle.dump(self.count_vectorizer.vocabulary_, open(name+"_vec.pickle", 'wb'))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        pickle.dump(self.knn,
+            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.model,
+            open(combined_path + "_model.pickle", 'wb'))
+        pickle.dump(self.count_vectorizer.vocabulary_,
+            open(combined_path + "_vec.pickle", 'wb'))
 
     def load(
         self,
-        name
+        path
     ):
         logging.info("Loading " + self.__class__.__name__)
-        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
-        self.model = pickle.load(open(name+"_model.pickle", 'rb'))
-        self.count_vectorizer = CountVectorizer(vocabulary=pickle.load(open(name+"_vec.pickle", 'rb')))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        self.knn = pickle.load(
+            open(combined_path + "_knn.pickle", 'rb'))
+        self.model = pickle.load(
+            open(combined_path + "_model.pickle", 'rb'))
+        self.count_vectorizer = CountVectorizer(
+            vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
+
+    def can_load(
+        self,
+        path
+    ):
+        combined_path = os.path.join(path, self.__class__.__name__)
+        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "_model.pickle") and os.path.isfile(combined_path + "_vec.pickle")

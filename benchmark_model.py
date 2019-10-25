@@ -1,5 +1,6 @@
 import logging
 import pickle
+import os
 from abc import ABC
 from abc import abstractmethod
 from sklearn import metrics
@@ -66,13 +67,26 @@ class BenchmarkModel(ABC):
         name
     ):
         logging.info("Saving " + self.__class__.__name__)
-        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
-        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        pickle.dump(self.knn,
+            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.model,
+            open(combined_path + "_model.pickle", 'wb'))
 
     def load(
         self,
-        name
+        path
     ):
         logging.info("Loading " + self.__class__.__name__)
-        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
-        self.model = pickle.load(open(name+"_model.pickle", 'rb'))
+        combined_path = os.path.join(path, self.__class__.__name__)
+        self.knn = pickle.load(
+            open(combined_path + "_knn.pickle", 'rb'))
+        self.model = pickle.load(
+            open(combined_path + "_model.pickle", 'rb'))
+
+    def can_load(
+        self,
+        path
+    ):
+        combined_path = os.path.join(path, self.__class__.__name__)
+        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "_model.pickle")
