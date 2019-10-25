@@ -28,20 +28,28 @@ class BenchmarkModel(ABC):
     ):
         raise Exception("Not implemented!")
 
+    @abstractmethod
+    def train(
+        self,
+        x,
+        y=None
+    ):
+        raise Exception("Not implemented!")
+
     def fit(
         self,
         x,
         y
     ):
         logging.info("Training kNN classifier")
-        return self.knn.fit(x, y)
+        return self.knn.fit(self.preprocess_data(x), y)
 
     def predict(
         self,
         x
     ):
         logging.info("Predict on kNN classifier")
-        return self.knn.predict(x)
+        return self.knn.predict(self.preprocess_data(x))
 
     def evaluate(
         self,
@@ -58,13 +66,13 @@ class BenchmarkModel(ABC):
         name
     ):
         logging.info("Saving " + self.__class__.__name__)
-        pickle.dump(self.knn, open(name+"_knn", 'wb'))
-        pickle.dump(self.model, open(name+"_model", 'wb'))
+        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
+        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
 
     def load(
         self,
         name
     ):
         logging.info("Loading " + self.__class__.__name__)
-        self.knn = pickle.load(open(name+"_knn", 'rb'))
-        self.model = pickle.load(open(name+"_model", 'rb'))
+        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
+        self.model = pickle.load(open(name+"_model.pickle", 'rb'))

@@ -1,4 +1,6 @@
 import logging
+import time
+import pickle
 from benchmark_model import BenchmarkModel
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,7 +18,7 @@ class LDAModel(BenchmarkModel):
         epochs=40
     ):
         super().__init__()
-        self.lda = LatentDirichletAllocation(
+        self.model = LatentDirichletAllocation(
             n_components=n_components,
             random_state=42,
             n_jobs=cores,
@@ -26,15 +28,19 @@ class LDAModel(BenchmarkModel):
             min_df=min_df,
             stop_words='english')
 
-    def build_vocabulary(
+    def train(
         self,
-        dataset
+        x,
+        y=None
     ):
         logging.info("Building vocabulary on " + self.__class__.__name__)
-        processed_dataset = process_dataset(dataset)
+        t0 = time.time()
+        processed_dataset = process_dataset(x)
         processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
         doc_term_matrix = self.count_vectorizer.fit_transform(processed_dataset.values.astype('U'))
-        self.lda.fit(doc_term_matrix)
+        self.model.fit(doc_term_matrix)
+        elapsed = (time.time() - t0)
+        logging.info("Done in %.3fsec" % elapsed)
 
     def preprocess_data(
         self,
@@ -44,4 +50,22 @@ class LDAModel(BenchmarkModel):
         processed_dataset = process_dataset(dataset)
         processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
         doc_term_matrix = self.count_vectorizer.transform(processed_dataset.values.astype('U'))
-        return self.lda.transform(doc_term_matrix)
+        return self.model.transform(doc_term_matrix)
+
+    def save(
+        self,
+        name
+    ):
+        logging.info("Saving " + self.__class__.__name__)
+        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
+        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
+        pickle.dump(self.count_vectorizer.vocabulary_, open(name+"_vec.pickle", 'wb'))
+
+    def load(
+        self,
+        name
+    ):
+        logging.info("Loading " + self.__class__.__name__)
+        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
+        self.model = pickle.load(open(name+"_model.pickle", 'rb'))
+        self.count_vectorizer = CountVectorizer(vocabulary=pickle.load(open(name+"_vec.pickle", 'rb')))

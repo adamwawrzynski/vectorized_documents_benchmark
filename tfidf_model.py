@@ -1,5 +1,6 @@
 
 import logging
+import time
 import pickle
 from benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -20,12 +21,16 @@ class TfIdfModel(BenchmarkModel):
             stop_words='english',
             use_idf=True)
 
-    def build_vocabulary(
+    def train(
         self,
-        dataset
+        x,
+        y=None
     ):
         logging.info("Building vectorizer " + self.__class__.__name__)
-        return self.tfidf_vectorizer.fit_transform(dataset)
+        t0 = time.time()
+        self.tfidf_vectorizer.fit(x)
+        elapsed = (time.time() - t0)
+        logging.info("Done in %.3fsec" % elapsed)
 
     def preprocess_data(
         self,
@@ -33,3 +38,21 @@ class TfIdfModel(BenchmarkModel):
     ):
         logging.info("Transforming dataset " + self.__class__.__name__)
         return self.tfidf_vectorizer.transform(dataset)
+
+    def save(
+        self,
+        name
+    ):
+        logging.info("Saving " + self.__class__.__name__)
+        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.vocabulary_, open(name+"_vec.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.idf_, open(name+"_vec_idf.pickle", 'wb'))
+
+    def load(
+        self,
+        name
+    ):
+        logging.info("Loading " + self.__class__.__name__)
+        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
+        self.tfidf_vectorizer = TfidfVectorizer(vocabulary=pickle.load(open(name+"_vec.pickle", 'rb')))
+        self.tfidf_vectorizer.idf_ = pickle.load(open(name+"_vec_idf.pickle", 'rb'))

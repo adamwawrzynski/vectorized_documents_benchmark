@@ -1,4 +1,6 @@
 import logging
+import time
+import pickle
 from benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
@@ -22,15 +24,19 @@ class LSAModel(BenchmarkModel):
             stop_words='english',
             use_idf=True)
         svd = TruncatedSVD(svd_features, n_iter=n_iter)
-        self.lsa = make_pipeline(svd, Normalizer(copy=False))
+        self.model = make_pipeline(svd, Normalizer(copy=False))
 
-    def build_vocabulary(
+    def train(
         self,
-        dataset
+        x,
+        y=None
     ):
         logging.info("Building vectorizer on " + self.__class__.__name__)
-        tfidf = self.tfidf_vectorizer.fit_transform(dataset)
-        self.lsa.fit(tfidf)
+        t0 = time.time()
+        tfidf = self.tfidf_vectorizer.fit_transform(x)
+        self.model.fit(tfidf)
+        elapsed = (time.time() - t0)
+        logging.info("Done in %.3fsec" % elapsed)
 
     def preprocess_data(
         self,
@@ -38,4 +44,24 @@ class LSAModel(BenchmarkModel):
     ):
         logging.info("Transforming data on " + self.__class__.__name__)
         tfidf = self.tfidf_vectorizer.transform(dataset)
-        return self.lsa.transform(tfidf)
+        return self.model.transform(tfidf)
+
+    def save(
+        self,
+        name
+    ):
+        logging.info("Saving " + self.__class__.__name__)
+        pickle.dump(self.knn, open(name+"_knn.pickle", 'wb'))
+        pickle.dump(self.model, open(name+"_model.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.vocabulary_, open(name+"_vec.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.idf_, open(name+"_vec_idf.pickle", 'wb'))
+
+    def load(
+        self,
+        name
+    ):
+        logging.info("Loading " + self.__class__.__name__)
+        self.knn = pickle.load(open(name+"_knn.pickle", 'rb'))
+        self.model = pickle.load(open(name+"_model.pickle", 'rb'))
+        self.tfidf_vectorizer = TfidfVectorizer(vocabulary=pickle.load(open(name+"_vec.pickle", 'rb')))
+        self.tfidf_vectorizer.idf_ = pickle.load(open(name+"_vec_idf.pickle", 'rb'))

@@ -1,4 +1,5 @@
 import logging
+import time
 from benchmark_model import BenchmarkModel
 from abc import abstractmethod
 from preprocess import process_dataset
@@ -26,10 +27,13 @@ class Doc2VecModel(BenchmarkModel):
         y
     ):
         logging.info("Training " + self.__class__.__name__)
+        t0 = time.time()
         processed_x = process_dataset(x)
         documents = [TaggedDocument(doc, [tag]) for doc, tag in zip(processed_x, y)]
         self.model.build_vocab(documents)
         self.model.train(documents, total_examples=self.model.corpus_count, epochs=self.model.epochs)
+        elapsed = (time.time() - t0)
+        logging.info("Done in %.3fsec" % elapsed)
 
     def preprocess_data(
         self,
