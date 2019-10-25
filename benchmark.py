@@ -45,90 +45,52 @@ dataset = pd.DataFrame(data.data, columns=['text'])
 train, test, y_train, y_test = train_test_split(
     dataset,
     dataset_y,
-    train_size=0.5)
+    train_size=0.2)
 
-model = Doc2VecDMModel(
+benchmark_models = []
+
+doc2vecdm = Doc2VecDMModel(
     negative=10,
     vector_size=100,
     window=5,
     workers=cores,
     min_count=2)
 
-if not model.can_load(args.models_path):
-    model.train(train['text'], y_train['target'])
-    model.fit(train['text'], y_train['target'])
-
-    model.save(args.models_path)
-else:
-    model.load(args.models_path)
-
-model.evaluate(test['text'], y_test['target'])
-
-model = Doc2VecDBOWModel(
+doc2veccbow = Doc2VecDBOWModel(
     negative=10,
     vector_size=100,
     window=5,
     workers=cores,
     min_count=2)
 
-
-if not model.can_load(args.models_path):
-    model.train(train['text'], y_train['target'])
-    model.fit(train['text'], y_train['target'])
-
-    model.save(args.models_path)
-else:
-    model.load(args.models_path)
-
-model.evaluate(test['text'], y_test['target'])
-
-model = LDAModel(
+lda = LDAModel(
     n_components=10,
     max_df=0.75,
     min_df=7,
     epochs=100,
     cores=cores)
 
-if not model.can_load(args.models_path):
-    model.train(train['text'])
-    model.fit(train['text'], y_train['target'])
-
-    model.save(args.models_path)
-else:
-    model.load(args.models_path)
-
-result = model.evaluate(test['text'], y_test['target'])
-
-model = TfIdfModel(
-    n_features=2000,
-    max_df=0.75,
-    min_df=7)
-
-if not model.can_load(args.models_path):
-    model.train(train['text'])
-    model.fit(train['text'], y_train['target'])
-
-    model.save(args.models_path)
-else:
-    model.load(args.models_path)
-
-model.evaluate(test['text'], y_test['target'])
-
-filename = "lsa"
-
-model = LSAModel(
+lsa = LSAModel(
     svd_features=10,
     n_features=2000, 
     n_iter=40,
     max_df=0.75,
     min_df=7)
 
-if not model.can_load(args.models_path):
-    model.train(train['text'])
-    model.fit(train['text'], y_train['target'])
+tfidf = TfIdfModel(
+    n_features=2000,
+    max_df=0.75,
+    min_df=7)
 
-    model.save(args.models_path)
-else:
-    model.load(args.models_path)
+benchmark_models = [doc2vecdm, doc2veccbow, lda, lsa, tfidf]
 
-model.evaluate(test['text'], y_test['target'])
+for model in benchmark_models:
+    if not model.can_load(args.models_path):
+        model.train(train['text'], y_train['target'])
+        model.fit(train['text'], y_train['target'])
+
+        model.save(args.models_path)
+    else:
+        model.load(args.models_path)
+
+    model.evaluate(test['text'], y_test['target'])
