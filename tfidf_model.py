@@ -14,10 +14,19 @@ class TfIdfModel(BenchmarkModel):
         min_df=1
     ):
         super().__init__()
-        self.tfidf_vectorizer = TfidfVectorizer(max_df=max_df,
+        self.n_features = n_features
+        self.max_df = max_df
+        self.min_df = min_df
+
+    def build_model(
+        self
+    ):
+        super().build_model()
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_df=self.max_df,
             decode_error="ignore",
-            max_features=n_features,
-            min_df=min_df,
+            max_features=self.n_features,
+            min_df=self.min_df,
             stop_words='english',
             use_idf=True)
 

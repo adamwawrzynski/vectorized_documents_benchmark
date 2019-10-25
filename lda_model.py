@@ -19,14 +19,24 @@ class LDAModel(BenchmarkModel):
         epochs=40
     ):
         super().__init__()
+        self.n_components = n_components
+        self.cores = cores
+        self.epochs = epochs
+        self.max_df = max_df
+        self.min_df = min_df
+
+    def build_model(
+        self
+    ):
+        super().build_model()
         self.model = LatentDirichletAllocation(
-            n_components=n_components,
+            n_components=self.n_components,
             random_state=42,
-            n_jobs=cores,
-            max_iter=epochs)
+            n_jobs=self.cores,
+            max_iter=self.epochs)
         self.count_vectorizer = CountVectorizer(
-            max_df=max_df,
-            min_df=min_df,
+            max_df=self.max_df,
+            min_df=self.min_df,
             stop_words='english')
 
     def train(
@@ -55,7 +65,7 @@ class LDAModel(BenchmarkModel):
 
     def save(
         self,
-        name
+        path
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)

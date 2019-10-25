@@ -15,12 +15,21 @@ class BenchmarkModel(ABC):
         metric='cosine',
         n_jobs=1
     ):
+        super().__init__()
+        self.n_neighbors = n_neighbors
+        self.algorithm = algorithm
+        self.metric = metric
+        self.n_jobs = n_jobs
+
+    def build_model(
+        self
+    ):
         self.model = None   # assigned in concrete classes
         self.knn = KNeighborsClassifier(
-            n_neighbors=n_neighbors,
-            algorithm=algorithm,
-            metric=metric,
-            n_jobs=n_jobs)
+            n_neighbors=self.n_neighbors,
+            algorithm=self.algorithm,
+            metric=self.metric,
+            n_jobs=self.n_jobs)
 
     @abstractmethod
     def preprocess_data(
@@ -64,7 +73,7 @@ class BenchmarkModel(ABC):
 
     def save(
         self,
-        name
+        path
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)

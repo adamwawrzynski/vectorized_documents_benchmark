@@ -19,7 +19,11 @@ class Doc2VecModel(BenchmarkModel):
         epochs=40
     ):
         super().__init__()
-        self.model = None
+
+    def build_model(
+        self
+    ):
+        super().build_model()
 
     def train(
         self,
@@ -56,14 +60,25 @@ class Doc2VecDMModel(Doc2VecModel):
         epochs=40
     ):
         super().__init__()
-        self.model = Doc2Vec(dm=1,
-            negative=negative,
-            vector_size=vector_size,
-            window=window,
-            min_count=min_count,
-            workers=workers,
-            epochs=epochs)
+        self.negative = negative
+        self.vector_size = vector_size
+        self.window = window
+        self.min_count = min_count
+        self.workers = workers
+        self.epochs = epochs
 
+    def build_model(
+        self
+    ):
+        super().build_model()
+        self.model = Doc2Vec(
+            dm=1,
+            negative=self.negative,
+            vector_size=self.vector_size,
+            window=self.window,
+            min_count=self.min_count,
+            workers=self.workers,
+            epochs=self.epochs)
 
 class Doc2VecDBOWModel(Doc2VecModel):
     def __init__(
@@ -76,10 +91,22 @@ class Doc2VecDBOWModel(Doc2VecModel):
         epochs=40
     ):
         super().__init__()
-        self.model = Doc2Vec(dm=0,
-            negative=negative,
-            vector_size=vector_size,
-            window=window,
-            min_count=min_count,
-            workers=workers,
-            epochs=epochs)
+        self.negative = negative
+        self.vector_size = vector_size
+        self.window = window
+        self.min_count = min_count
+        self.workers = workers
+        self.epochs = epochs
+
+    def build_model(
+        self
+    ):
+        super().build_model()
+        self.model = Doc2Vec(
+            dm=0,
+            negative=self.negative,
+            vector_size=self.vector_size,
+            window=self.window,
+            min_count=self.min_count,
+            workers=self.workers,
+            epochs=self.epochs)

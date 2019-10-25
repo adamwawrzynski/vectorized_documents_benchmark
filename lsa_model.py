@@ -19,12 +19,23 @@ class LSAModel(BenchmarkModel):
         min_df=1
     ):
         super().__init__()
-        self.tfidf_vectorizer = TfidfVectorizer(max_df=max_df,
-            max_features=n_features,
-            min_df=min_df,
+        self.svd_features = svd_features
+        self.n_features = n_features
+        self.n_iter = n_iter
+        self.max_df = max_df
+        self.min_df = min_df
+
+    def build_model(
+        self
+    ):
+        super().build_model()
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_df=self.max_df,
+            max_features=self.n_features,
+            min_df=self.min_df,
             stop_words='english',
             use_idf=True)
-        svd = TruncatedSVD(svd_features, n_iter=n_iter)
+        svd = TruncatedSVD(self.svd_features, n_iter=self.n_iter)
         self.model = make_pipeline(svd, Normalizer(copy=False))
 
     def train(
@@ -49,7 +60,7 @@ class LSAModel(BenchmarkModel):
 
     def save(
         self,
-        name
+        path
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
