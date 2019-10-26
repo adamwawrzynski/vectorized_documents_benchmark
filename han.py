@@ -97,7 +97,7 @@ class HAN(object):
             self.x_train, self.y_train, self.x_val, self.y_val = self.split_dataset()
             self.set_model()
         except AssertionError:
-            print('Input and label data must be of same size')
+            logging.error('Input and label data must be of same size')
 
     def set_hyperparameters(
         self,
@@ -111,6 +111,7 @@ class HAN(object):
             if key in self.hyperparameters:
                 self.hyperparameters[key] = value
             else:
+                logging.error(key + ' does not exist in hyperparameters')
                 raise KeyError(key + ' does not exist in hyperparameters')
             self.set_model()
 
@@ -137,7 +138,7 @@ class HAN(object):
             self.categories = pd.concat([self.categories, pd.Series(labels)])
             assert (len(self.classes) == self.categories.unique().tolist())
         except AssertionError:
-            print("New class cannot be added in this manner")
+            logging.error("New class cannot be added in this manner")
 
     def processed_data(
         self,
@@ -157,11 +158,11 @@ class HAN(object):
                             data[i, j, k] = self.tokenizer.word_index[word]
                             k = k+1
         if self.verbose == 1:
-            print('Total %s unique tokens.' % len(self.tokenizer.word_index))
+            logging.info('Total %s unique tokens.' % len(self.tokenizer.word_index))
         labels = pd.get_dummies(labels)
         if self.verbose == 1:
-            print('Shape of data tensor:', data.shape)
-            print('Shape of labels tensor:', labels.shape)
+            logging.info('Shape of data tensor:', data.shape)
+            logging.info('Shape of labels tensor:', labels.shape)
         assert (len(self.classes) == labels.shape[1])
         assert (data.shape[0] == labels.shape[0])
         return data, labels
@@ -198,10 +199,10 @@ class HAN(object):
         x_val = self.data[-nb_validation_samples:]
         y_val = self.labels[-nb_validation_samples:]
         if self.verbose == 1:
-            print('Number of positive and negative reviews in traing and validation set')
-            print(y_train.columns.tolist())
-            print(y_train.sum(axis=0).tolist())
-            print(y_val.sum(axis=0).tolist())
+            logging.info('Number of positive and negative reviews in traing and validation set')
+            logging.info(y_train.columns.tolist())
+            logging.info(y_train.sum(axis=0).tolist())
+            logging.info(y_val.sum(axis=0).tolist())
         return x_train, y_train, x_val, y_val
 
     def get_model(
@@ -244,10 +245,10 @@ class HAN(object):
                 embeddings_index[word] = coefs
             f.close()
         except OSError:
-            print('Embedded file does not found')
+            logging.error('Embedded file does not found')
             exit()
         except AssertionError:
-            print("Embedding vector size does not match with given embedded size")
+            logging.error("Embedding vector size does not match with given embedded size")
         return embeddings_index
 
     def get_embedding_matrix(
@@ -266,7 +267,7 @@ class HAN(object):
             else:
                 absent_words += 1
         if self.verbose == 1:
-            print('Total absent words are', absent_words, 'which is', "%0.2f" %
+            logging.info('Total absent words are', absent_words, 'which is', "%0.2f" %
                 (absent_words * 100 / len(self.tokenizer.word_index)), '% of total words')
         return embedding_matrix
 
