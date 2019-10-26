@@ -14,6 +14,7 @@ from lda_model import LDAModel
 from lsa_model import LSAModel
 from han import HAN
 from han_model import HANModel
+from cbow_model import CBOWModel
 
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
@@ -89,7 +90,6 @@ y_train = y_train.reset_index(drop=True)
 
 benchmark_models = []
 
-
 han = HANModel(
     text = train['text'],
     labels = y_train['target'],
@@ -136,10 +136,14 @@ tfidf = TfIdfModel(
     max_df=0.75,
     min_df=7)
 
+cbow = CBOWModel(
+    max_df=0.75,
+    min_df=7)
+
 benchmark_models = [han, doc2vecdm, doc2veccbow, lda, lsa, tfidf]
 
 for model in benchmark_models:
-    if args.restore or not model.can_load(args.models_path):
+    if not args.restore or not model.can_load(args.models_path):
         model.train(train['text'], y_train['target'])
         model.fit(train['text'], y_train['target'])
 
