@@ -12,6 +12,8 @@ from tfidf_model import TfIdfModel
 from doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
 from lda_model import LDAModel
 from lsa_model import LSAModel
+from han import HAN
+from han_model import HANModel
 
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
@@ -24,9 +26,10 @@ cores = multiprocessing.cpu_count()-2
 def cross_validation(
     benchmark_models,
     train,
-    y_train
+    y_train,
+    n_splits=10,
 ):
-    cv = KFold(n_splits=10, random_state=42, shuffle=False)
+    cv = KFold(n_splits=n_splits, random_state=42, shuffle=False)
 
     for model in benchmark_models:
         scores = []
@@ -54,6 +57,12 @@ parser.add_argument("-m",
     required=True,
     help="Path to models")
 
+parser.add_argument("-p",
+    "--pretrained",
+    dest="pretrained_path",
+    required=True,
+    help="Path to pretrained embedding model")
+
 parser.add_argument("-r",
     "--restore",
     dest="restore",
@@ -79,6 +88,20 @@ train = train.reset_index(drop=True)
 y_train = y_train.reset_index(drop=True)
 
 benchmark_models = []
+
+
+han = HANModel(
+    text = train['text'],
+    labels = y_train['target'],
+    num_categories = 5,
+    pretrained_embedded_vector_path = args.pretrained_path,
+    max_features = 200000,
+    max_senten_len = 150,
+    max_senten_num = 20,
+    embedding_size = 100,
+    validation_split=0.2,
+    verbose=1,
+    epochs=1)
 
 doc2vecdm = Doc2VecDMModel(
     negative=10,
@@ -113,7 +136,7 @@ tfidf = TfIdfModel(
     max_df=0.75,
     min_df=7)
 
-benchmark_models = [doc2vecdm, doc2veccbow, lda, lsa, tfidf]
+benchmark_models = [han, doc2vecdm, doc2veccbow, lda, lsa, tfidf]
 
 for model in benchmark_models:
     if args.restore or not model.can_load(args.models_path):

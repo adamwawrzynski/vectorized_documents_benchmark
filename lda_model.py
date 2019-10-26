@@ -55,7 +55,8 @@ class LDAModel(BenchmarkModel):
 
     def preprocess_data(
         self,
-        dataset
+        dataset,
+        y_dataset
     ):
         logging.info("Transform data on " + self.__class__.__name__)
         processed_dataset = process_dataset(dataset)
@@ -94,4 +95,6 @@ class LDAModel(BenchmarkModel):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "_model.pickle") and os.path.isfile(combined_path + "_vec.pickle")
+        return os.path.isfile(combined_path + "_knn.pickle") and \
+        os.path.isfile(combined_path + "_model.pickle") and \
+        os.path.isfile(combined_path + "_vec.pickle")

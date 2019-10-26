@@ -43,7 +43,8 @@ class TfIdfModel(BenchmarkModel):
 
     def preprocess_data(
         self,
-        dataset
+        dataset,
+        y_dataset
     ):
         logging.info("Transforming dataset " + self.__class__.__name__)
         return self.tfidf_vectorizer.transform(dataset)
@@ -79,4 +80,6 @@ class TfIdfModel(BenchmarkModel):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "vec.pickle") and os.path.isfile(combined_path + "_vec_idf.pickle")
+        return os.path.isfile(combined_path + "_knn.pickle") and \
+            os.path.isfile(combined_path + "vec.pickle") and \
+            os.path.isfile(combined_path + "_vec_idf.pickle")

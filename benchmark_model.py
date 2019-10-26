@@ -34,7 +34,8 @@ class BenchmarkModel(ABC):
     @abstractmethod
     def preprocess_data(
         self,
-        dataset
+        dataset,
+        y_dataset
     ):
         raise Exception("Not implemented!")
 
@@ -52,21 +53,22 @@ class BenchmarkModel(ABC):
         y
     ):
         logging.info("Training kNN classifier")
-        return self.knn.fit(self.preprocess_data(x), y)
+        return self.knn.fit(self.preprocess_data(x, y), y)
 
     def predict(
         self,
-        x
+        x,
+        y=None
     ):
         logging.info("Predict on kNN classifier")
-        return self.knn.predict(self.preprocess_data(x))
+        return self.knn.predict(self.preprocess_data(x, y))
 
     def evaluate(
         self,
         x,
-        y
+        y=None
     ):
-        y_pred = self.predict(x)
+        y_pred = self.predict(x, y)
         result = metrics.accuracy_score(y, y_pred)
         logging.info("Accuracy: %.3f" % result)
         return result
@@ -98,4 +100,5 @@ class BenchmarkModel(ABC):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and os.path.isfile(combined_path + "_model.pickle")
+        return os.path.isfile(combined_path + "_knn.pickle") and \
+            os.path.isfile(combined_path + "_model.pickle")
