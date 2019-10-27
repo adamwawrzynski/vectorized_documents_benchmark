@@ -97,7 +97,7 @@ class HAN(object):
             self.x_train, self.y_train, self.x_val, self.y_val = self.split_dataset()
             self.set_model()
         except AssertionError:
-            logging.error('Input and label data must be of same size')
+            logging.error("Input and label data must be of same size")
 
     def set_hyperparameters(
         self,
@@ -111,7 +111,7 @@ class HAN(object):
             if key in self.hyperparameters:
                 self.hyperparameters[key] = value
             else:
-                logging.error(key + ' does not exist in hyperparameters')
+                logging.error(key + " does not exist in hyperparameters")
                 raise KeyError(key + ' does not exist in hyperparameters')
             self.set_model()
 
@@ -158,11 +158,11 @@ class HAN(object):
                             data[i, j, k] = self.tokenizer.word_index[word]
                             k = k+1
         if self.verbose == 1:
-            logging.info('Total %s unique tokens.' % len(self.tokenizer.word_index))
+            logging.info("Total %s unique tokens." % len(self.tokenizer.word_index))
         labels = pd.get_dummies(labels)
         if self.verbose == 1:
-            logging.info('Shape of data tensor:', data.shape)
-            logging.info('Shape of labels tensor:', labels.shape)
+            logging.info("Shape of data tensor: %s" + str(data.shape))
+            logging.info("Shape of labels tensor: %s" + str(labels.shape))
         assert (len(self.classes) == labels.shape[1])
         assert (data.shape[0] == labels.shape[0])
         return data, labels
@@ -199,7 +199,7 @@ class HAN(object):
         x_val = self.data[-nb_validation_samples:]
         y_val = self.labels[-nb_validation_samples:]
         if self.verbose == 1:
-            logging.info('Number of positive and negative reviews in traing and validation set')
+            logging.info("Number of positive and negative reviews in traing and validation set")
             logging.info(y_train.columns.tolist())
             logging.info(y_train.sum(axis=0).tolist())
             logging.info(y_val.sum(axis=0).tolist())
@@ -217,7 +217,7 @@ class HAN(object):
         self,
         path
     ):
-        custom_objects={'AttentionWithContext': AttentionWithContext}
+        custom_objects={"AttentionWithContext": AttentionWithContext}
         self.model = load_model(path + ".h5", custom_objects=custom_objects)
         self.wordEncoder = load_model(path + "_word.h5", custom_objects=custom_objects)
 
@@ -245,7 +245,7 @@ class HAN(object):
                 embeddings_index[word] = coefs
             f.close()
         except OSError:
-            logging.error('Embedded file does not found')
+            logging.error("Embedded file does not found")
             exit()
         except AssertionError:
             logging.error("Embedding vector size does not match with given embedded size")
@@ -267,8 +267,8 @@ class HAN(object):
             else:
                 absent_words += 1
         if self.verbose == 1:
-            logging.info('Total absent words are', absent_words, 'which is', "%0.2f" %
-                (absent_words * 100 / len(self.tokenizer.word_index)), '% of total words')
+            logging.info("Total absent words are %s" % absent_words + " which is %0.2f" %
+                (absent_words * 100 / len(self.tokenizer.word_index)) + "% of total words")
         return embedding_matrix
 
     def get_embedding_layer(
