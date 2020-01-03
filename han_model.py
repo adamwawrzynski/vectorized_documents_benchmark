@@ -40,7 +40,6 @@ class HANModel(BenchmarkModel):
         self.epochs = epochs
         self.batch_size = batch_size
         self.embedding_model = None
-        self.build_model()
 
     def build_model(
         self
