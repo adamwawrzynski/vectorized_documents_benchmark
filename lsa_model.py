@@ -5,8 +5,7 @@ import os
 from benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import Normalizer
+from preprocess import process_dataset
 
 
 class LSAModel(BenchmarkModel):
@@ -35,8 +34,8 @@ class LSAModel(BenchmarkModel):
             min_df=self.min_df,
             stop_words='english',
             use_idf=True)
-        svd = TruncatedSVD(self.svd_features, n_iter=self.n_iter)
-        self.model = make_pipeline(svd, Normalizer(copy=False))
+
+        self.model = TruncatedSVD(self.svd_features, n_iter=self.n_iter)
 
     def train(
         self,
@@ -45,7 +44,9 @@ class LSAModel(BenchmarkModel):
     ):
         logging.info("Building vectorizer on " + self.__class__.__name__)
         t0 = time.time()
-        tfidf = self.tfidf_vectorizer.fit_transform(x)
+        processed_dataset = process_dataset(x)
+        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
+        tfidf = self.tfidf_vectorizer.fit_transform(processed_dataset.values.astype('U'))
         self.model.fit(tfidf)
         elapsed = (time.time() - t0)
         logging.info("Done in %.3fsec" % elapsed)
@@ -56,7 +57,9 @@ class LSAModel(BenchmarkModel):
         y_dataset
     ):
         logging.info("Transforming data on " + self.__class__.__name__)
-        tfidf = self.tfidf_vectorizer.transform(dataset)
+        processed_dataset = process_dataset(dataset)
+        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
+        tfidf = self.tfidf_vectorizer.transform(processed_dataset.values.astype('U'))
         return self.model.transform(tfidf)
 
     def save(
