@@ -1,3 +1,4 @@
+
 # Doc2Vec methods benchmark
 
 Framework for benchmarking different methods used for documents embeddings.
@@ -64,23 +65,30 @@ The common methods are used for handling final KNeighborsClassifier and saving a
 
 ## Datasets
 
-### BBC dataset
+Reuters-21578, Ohsumed and 20 Newsgroups used in this benchmark were downloaded from [enter link description here](http://disi.unitn.it/moschitti/corpora.htm).
 
+### BBC dataset
 [BBC dataset](http://mlg.ucd.ie/datasets/bbc.html) consists of 2 datasets of news articles from BBC News:
 1. BBC:	2225 articles of 5 classes(business, entertainment, politics, sport, tech)
 2. BBCSport: 737 articles of 5 classes(athletics, cricket, football, rugby, tennis)
 
-### News Category Dataset
+### Reuters
+This is a collection of documents that appeared on Reuters newswire in 1987.
 
-This dataset contains around 200,000 news headlines from the year 2012 to 2018 obtained from [HuffPost](https://www.huffingtonpost.com/).
+Dataset obtained from here: [Reuters(90)](http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-90Cat.tar.gz)
+Dataset obtained from here: [Reuters(115)](http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-115Cat.tar.gz)
 
-Dataset obtained from here: [https://www.kaggle.com/rmisra/news-category-dataset](https://www.kaggle.com/rmisra/news-category-dataset).
+### Ohsumed
+Includes medical abstracts from the _MeSH_ categories of the year 1991. The specific task was to categorize the 23 _cardiovascular diseases_ categories.
+
+Dataset obtained from here: [Ohsumed(20,000)](http://disi.unitn.it/moschitti/corpora/ohsumed-first-20000-docs.tar.gz)
+Dataset obtained from here: [Ohsumed(All)](http://disi.unitn.it/moschitti/corpora/ohsumed-all-docs.tar.gz)
 
 ### 20 Newsgroup Dataset
 
 This data set is a collection of 20,000 messages, collected from 20 different netnews newsgroups.
 
-Dataset obtained from here: [20 Newsgroup Dataset](http://www.cs.cmu.edu/afs/cs.cmu.edu/project/theo-20/www/data/news20.tar.gz)
+Dataset obtained from here: [20 Newsgroup Dataset](http://disi.unitn.it/moschitti/corpora/20_newsgroups.tar.gz)
 
 
 ## References
