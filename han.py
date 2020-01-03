@@ -22,6 +22,7 @@ import time
 import os
 import logging
 from sklearn import metrics
+from preprocess import clean_string
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
@@ -90,9 +91,6 @@ class HAN(object):
             self.text = pd.Series(text)
             self.categories = pd.Series(labels)
             self.classes = self.categories.unique().tolist()
-            if num_categories is not None:
-                assert (num_categories == len(self.classes))
-            assert (self.text.shape[0] == self.categories.shape[0])
             self.data, self.labels = self.preprocessing(self.text, self.categories)
             self.x_train, self.y_train, self.x_val, self.y_val = self.split_dataset()
             self.set_model()
@@ -114,19 +112,6 @@ class HAN(object):
                 logging.error(key + " does not exist in hyperparameters")
                 raise KeyError(key + ' does not exist in hyperparameters')
             self.set_model()
-
-    def clean_string(
-        self,
-        string
-    ):
-        """
-        Tokenization/string cleaning for dataset
-        Every dataset is lower cased except
-        """
-        string = re.sub(r"\\", "", string)
-        string = re.sub(r"\'", "", string)
-        string = re.sub(r"\"", "", string)
-        return string.strip().lower()
 
     def add_dataset(
         self,
@@ -163,8 +148,6 @@ class HAN(object):
         if self.verbose == 1:
             logging.info("Shape of data tensor: %s" + str(data.shape))
             logging.info("Shape of labels tensor: %s" + str(labels.shape))
-        assert (len(self.classes) == labels.shape[1])
-        assert (data.shape[0] == labels.shape[0])
         return data, labels
 
 
@@ -178,7 +161,7 @@ class HAN(object):
         paras = []
         texts = []
         for sentence in text:
-            text = self.clean_string(sentence)
+            text = clean_string(sentence)
             texts.append(text)
             sentences = tokenize.sent_tokenize(text)
             paras.append(sentences)
@@ -334,14 +317,22 @@ class HAN(object):
         epochs -- Total number of epochs
         batch_size -- size of a batch
         """
+        checkpoint = ModelCheckpoint(
+            "han_best_model.weights",
+            verbose=0,
+            monitor='val_loss',
+            save_best_only=True,
+            save_weights_only=True,
+            mode='auto')
         self.model.fit(
-                    self.x_train,
-                    self.y_train,
-                    validation_data=(self.x_val, self.y_val),
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    verbose = self.verbose,
-                    shuffle=True)
+            self.x_train,
+            self.y_train,
+            validation_data=(self.x_val, self.y_val),
+            epochs=epochs,
+            batch_size=batch_size,
+            verbose = self.verbose,
+            shuffle=True,
+            callbacks=[checkpoint])
 
     def evaluate(
         self,
@@ -353,6 +344,7 @@ class HAN(object):
         self.classes = self.categories.unique().tolist()
         data, _ = self.preprocessing(self.text, y_dataset)
 
+        self.model.load_weights("han_best_model.weights")
         y_pred = self.model.predict(data)
         result = metrics.accuracy_score(y_dataset, y_pred)
         logging.info("Accuracy: %.3f" % result)
