@@ -41,7 +41,8 @@ class Doc2VecModel(BenchmarkModel):
 
     def preprocess_data(
         self,
-        dataset
+        dataset,
+        y_dataset
     ):
         logging.info("Transforming data on " + self.__class__.__name__)
         processed_dataset = process_dataset(dataset).tolist()
