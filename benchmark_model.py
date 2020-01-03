@@ -6,11 +6,10 @@ from abc import abstractmethod
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
 
-
 class BenchmarkModel(ABC):
     def __init__(
         self,
-        n_neighbors=5,
+        n_neighbors=3,
         algorithm='brute',
         metric='cosine',
         n_jobs=1
