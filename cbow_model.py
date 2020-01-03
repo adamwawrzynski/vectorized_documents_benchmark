@@ -10,19 +10,21 @@ from preprocess import process_dataset
 class CBOWModel(BenchmarkModel):
     def __init__(
         self,
+        max_features,
         max_df,
         min_df,
     ):
         super().__init__()
+        self.max_features = max_features
         self.max_df = max_df
         self.min_df = min_df
-        self.build_model()
 
     def build_model(
         self
     ):
         super().build_model()
         self.count_vectorizer = CountVectorizer(
+            max_features=self.max_features,
             max_df=self.max_df,
             min_df=self.min_df,
             stop_words='english')
