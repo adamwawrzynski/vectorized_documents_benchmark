@@ -4,26 +4,33 @@ import pickle
 import os
 from benchmark_model import BenchmarkModel
 from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from preprocess import process_dataset
 
+import numpy as np
+from sklearn import metrics
 
 class LDAModel(BenchmarkModel):
     def __init__(
         self,
         n_components,
+        max_features,
         max_df,
         min_df,
+        learning_method="batch",
+        learning_decay=0.7,
         cores=1,
-        epochs=40
+        epochs=10
     ):
         super().__init__()
         self.n_components = n_components
         self.cores = cores
         self.epochs = epochs
+        self.max_features = max_features
         self.max_df = max_df
         self.min_df = min_df
+        self.learning_method = learning_method
+        self.learning_decay = learning_decay
 
     def build_model(
         self
@@ -31,10 +38,12 @@ class LDAModel(BenchmarkModel):
         super().build_model()
         self.model = LatentDirichletAllocation(
             n_components=self.n_components,
-            random_state=42,
+            learning_method=self.learning_method,
+            learning_decay=self.learning_decay,
             n_jobs=self.cores,
             max_iter=self.epochs)
         self.count_vectorizer = CountVectorizer(
+            max_features=self.max_features,
             max_df=self.max_df,
             min_df=self.min_df,
             stop_words='english')
