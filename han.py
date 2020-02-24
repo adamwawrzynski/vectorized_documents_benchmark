@@ -3,7 +3,7 @@ import numpy as np
 from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from keras.engine.topology import Layer
 from keras import initializers as initializers, regularizers, constraints
-from keras.callbacks import Callback, ModelCheckpoint
+from keras.callbacks import Callback, ModelCheckpoint, EarlyStopping
 from keras.utils.np_utils import to_categorical
 from keras.layers import Embedding, Input, Dense, LSTM, GRU, Bidirectional, TimeDistributed, Dropout
 from keras import backend as K
@@ -70,8 +70,8 @@ class HAN(object):
         self.hyperparameters = {
             'l2_regulizer': 1e-13,
             'dropout_regulizer' : 0.5,
-            'rnn' : LSTM,
-            'rnn_units' : 100,
+            'rnn' : GRU,
+            'rnn_units' : 50,
             'dense_units': 100,
             'activation' : 'softmax',
             'optimizer' : 'adam',
@@ -284,27 +284,53 @@ class HAN(object):
             dropout_regularizer = 1
         else:
             dropout_regularizer = self.hyperparameters['dropout_regulizer']
-        word_input = Input(shape=(self.max_senten_len,), dtype='float32')
+        word_input = Input(
+            shape=(self.max_senten_len,),
+            dtype='float32')
         word_sequences = self.get_embedding_layer()(word_input)
         word_lstm = Bidirectional(
-            self.hyperparameters['rnn'](self.hyperparameters['rnn_units'], return_sequences=True, kernel_regularizer=kernel_regularizer))(word_sequences)
+            self.hyperparameters['rnn'](
+                self.hyperparameters['rnn_units'],
+                return_sequences=True,
+                kernel_regularizer=kernel_regularizer,
+                recurrent_dropout=0.2
+                )
+            )(word_sequences)
         word_dense = TimeDistributed(
-            Dense(self.hyperparameters['dense_units'], kernel_regularizer=kernel_regularizer))(word_lstm)
+            Dense(
+                self.hyperparameters['dense_units'],
+                kernel_regularizer=kernel_regularizer)
+            )(word_lstm)
         word_att = AttentionWithContext()(word_dense)
         self.wordEncoder = Model(word_input, word_att)
 
-        sent_input = Input(shape=(self.max_senten_num, self.max_senten_len), dtype='float32')
+        sent_input = Input(
+            shape=(self.max_senten_num, self.max_senten_len),
+            dtype='float32')
         sent_encoder = TimeDistributed(self.wordEncoder)(sent_input)
-        sent_lstm = Bidirectional(self.hyperparameters['rnn'](
-            self.hyperparameters['rnn_units'], return_sequences=True, kernel_regularizer=kernel_regularizer))(sent_encoder)
+        sent_lstm = Bidirectional(
+                self.hyperparameters['rnn'](
+                    self.hyperparameters['rnn_units'],
+                    return_sequences=True,
+                    kernel_regularizer=kernel_regularizer,
+                    recurrent_dropout=0.2)
+                )(sent_encoder)
         sent_dense = TimeDistributed(
-            Dense(self.hyperparameters['dense_units'], kernel_regularizer=kernel_regularizer))(sent_lstm)
-        sent_att = Dropout(dropout_regularizer, name="embedding_output")(
-            AttentionWithContext()(sent_dense))
-        sent_att_dropout = Dropout(dropout_regularizer)(sent_att)
-        preds = Dense(len(self.classes), activation=self.hyperparameters['activation'])(sent_att_dropout)
+            Dense(
+                self.hyperparameters['dense_units'],
+                kernel_regularizer=kernel_regularizer)
+                )(sent_lstm)
+        sent_att = AttentionWithContext()(sent_dense)
+        sent_att_dropout = Dropout(
+            dropout_regularizer,
+            name="embedding_output")(sent_att)
+        preds = Dense(
+            len(self.classes),
+            activation=self.hyperparameters['activation'])(sent_att_dropout)
         self.model = Model(sent_input, preds)
 
+        self.wordEncoder.summary()
+        self.model.summary()
         self.model.compile(
             loss=self.hyperparameters['loss'], optimizer=self.hyperparameters['optimizer'], metrics=self.hyperparameters['metrics'])
         
@@ -324,6 +350,9 @@ class HAN(object):
             save_best_only=True,
             save_weights_only=True,
             mode='auto')
+        earlystop = EarlyStopping(
+            monitor='val_loss',
+            patience=3)
         self.model.fit(
             self.x_train,
             self.y_train,
@@ -332,7 +361,7 @@ class HAN(object):
             batch_size=batch_size,
             verbose = self.verbose,
             shuffle=True,
-            callbacks=[checkpoint])
+            callbacks=[checkpoint, earlystop])
 
     def evaluate(
         self,
