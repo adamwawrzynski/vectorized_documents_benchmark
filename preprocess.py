@@ -20,11 +20,11 @@ def clean_string(
     return string.strip().lower()
 
 def preprocess_text(
-    text,
+    raw,
     remove_stopwords=False,
     lemmatize=False
 ):
-    text = re.sub("[^a-zA-Z0-9]", " ", text)
+    text = re.sub("[^a-zA-Z0-9]", " ", raw)
     words = word_tokenize(text)
     if lemmatize == True:
         words = [stem.stem(w) for w in words]
@@ -37,4 +37,4 @@ def process_dataset(
     remove_stopwords=False,
     lemmatize=False
 ):
-    return dataset.map(lambda x: preprocess_text(x))
+    return dataset.map(lambda x: preprocess_text(x, remove_stopwords,lemmatize))
