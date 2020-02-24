@@ -1,10 +1,6 @@
 import argparse
-from glob import glob
-import os
-import pandas as pd
 import numpy as np
 import time
-from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 
 from load_dataset import load_bbc_dataset
@@ -12,14 +8,13 @@ from load_dataset import load_news_groups_dataset
 from load_dataset import load_yahoo_answers_dataset
 from load_dataset import load_ohsumed_dataset
 from load_dataset import load_reuters_dataset
-from tfidf_model import TfIdfModel
-from doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
-from lda_model import LDAModel
-from lsa_model import LSAModel
-from han import HAN
-from han_model import HANModel
-from sif_model import SIFModel
-from cbow_model import CBOWModel
+from models.tfidf_model import TfIdfModel
+from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
+from models.lda_model import LDAModel
+from models.lsa_model import LSAModel
+from models.han_model import HANModel
+from models.sif_model import SIFModel
+from models.cbow_model import CBOWModel
 
 import logging
 import multiprocessing

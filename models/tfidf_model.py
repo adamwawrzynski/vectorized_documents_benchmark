@@ -2,20 +2,19 @@ import logging
 import time
 import pickle
 import os
-from benchmark_model import BenchmarkModel
-from sklearn.feature_extraction.text import CountVectorizer
-from preprocess import process_dataset
+from models.benchmark_model import BenchmarkModel
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-class CBOWModel(BenchmarkModel):
+class TfIdfModel(BenchmarkModel):
     def __init__(
         self,
-        max_features,
-        max_df,
-        min_df,
+        n_features=1000,
+        max_df=1,
+        min_df=1
     ):
         super().__init__()
-        self.max_features = max_features
+        self.n_features = n_features
         self.max_df = max_df
         self.min_df = min_df
 
@@ -23,22 +22,22 @@ class CBOWModel(BenchmarkModel):
         self
     ):
         super().build_model()
-        self.count_vectorizer = CountVectorizer(
-            max_features=self.max_features,
+        self.tfidf_vectorizer = TfidfVectorizer(
             max_df=self.max_df,
+            decode_error="ignore",
+            max_features=self.n_features,
             min_df=self.min_df,
-            stop_words='english')
+            stop_words='english',
+            use_idf=True)
 
     def train(
         self,
         x,
         y=None
     ):
-        logging.info("Building vocabulary on " + self.__class__.__name__)
+        logging.info("Building vectorizer " + self.__class__.__name__)
         t0 = time.time()
-        processed_dataset = process_dataset(x)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        self.count_vectorizer.fit(processed_dataset.values.astype('U'))
+        self.tfidf_vectorizer.fit(x)
         elapsed = (time.time() - t0)
         logging.info("Done in %.3fsec" % elapsed)
 
@@ -47,10 +46,8 @@ class CBOWModel(BenchmarkModel):
         dataset,
         y_dataset
     ):
-        logging.info("Transform data on " + self.__class__.__name__)
-        processed_dataset = process_dataset(dataset)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        return self.count_vectorizer.transform(processed_dataset.values.astype('U'))
+        logging.info("Transforming dataset " + self.__class__.__name__)
+        return self.tfidf_vectorizer.transform(dataset)
 
     def save(
         self,
@@ -60,8 +57,10 @@ class CBOWModel(BenchmarkModel):
         combined_path = os.path.join(path, self.__class__.__name__)
         pickle.dump(self.clf,
             open(combined_path + "_clf.pickle", 'wb'))
-        pickle.dump(self.count_vectorizer.vocabulary_,
+        pickle.dump(self.tfidf_vectorizer.vocabulary_,
             open(combined_path + "_vec.pickle", 'wb'))
+        pickle.dump(self.tfidf_vectorizer.idf_,
+            open(combined_path + "_vec_idf.pickle", 'wb'))
 
     def load(
         self,
@@ -71,8 +70,10 @@ class CBOWModel(BenchmarkModel):
         combined_path = os.path.join(path, self.__class__.__name__)
         self.clf = pickle.load(
             open(combined_path + "_clf.pickle", 'rb'))
-        self.count_vectorizer = CountVectorizer(
+        self.tfidf_vectorizer = TfidfVectorizer(
             vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
+        self.tfidf_vectorizer.idf_ = pickle.load(
+            open(combined_path + "_vec_idf.pickle", 'rb'))
 
     def can_load(
         self,
@@ -80,4 +81,5 @@ class CBOWModel(BenchmarkModel):
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
         return os.path.isfile(combined_path + "_clf.pickle") and \
-        os.path.isfile(combined_path + "_vec.pickle")
+            os.path.isfile(combined_path + "vec.pickle") and \
+            os.path.isfile(combined_path + "_vec_idf.pickle")

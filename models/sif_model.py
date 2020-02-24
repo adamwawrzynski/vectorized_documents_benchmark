@@ -2,11 +2,8 @@ import logging
 import time
 import pickle
 import os
-from keras.models import load_model
-from keras.models import Model
-from keras import backend as K
-from benchmark_model import BenchmarkModel
-from sif import SIF
+from models.benchmark_model import BenchmarkModel
+from models.sif import SIF
 
 
 class SIFModel(BenchmarkModel):

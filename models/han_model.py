@@ -2,12 +2,9 @@ import logging
 import time
 import pickle
 import os
-from keras.models import load_model
 from keras.models import Model
-from keras import backend as K
-from benchmark_model import BenchmarkModel
-from han import HAN
-from attention_with_context import AttentionWithContext
+from models.benchmark_model import BenchmarkModel
+from models.han import HAN
 
 
 class HANModel(BenchmarkModel):

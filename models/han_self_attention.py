@@ -5,7 +5,7 @@ from keras.engine.topology import Layer
 from keras import initializers as initializers, regularizers, constraints
 from keras.callbacks import Callback, ModelCheckpoint, EarlyStopping
 from keras.utils.np_utils import to_categorical
-from keras.layers import Embedding, Input, Dense, LSTM, GRU, Bidirectional, TimeDistributed, Dropout
+from keras.layers import Embedding, Input, Dense, LSTM, GRU, Bidirectional, TimeDistributed, Dropout, Flatten, Lambda
 from keras import backend as K
 from keras import optimizers
 from keras.models import Model
@@ -15,7 +15,6 @@ import re
 import sys
 from sklearn.metrics import roc_auc_score
 from nltk import tokenize
-from attention_with_context import AttentionWithContext
 from sklearn.utils import shuffle
 import re
 import time
@@ -24,10 +23,13 @@ import logging
 from sklearn import metrics
 from preprocess import clean_string
 
+import keras
+from keras_self_attention import SeqSelfAttention
+
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
 
-class HAN(object):
+class HANSelfAttention(object):
     """
     HAN model is implemented here.
     """
@@ -71,7 +73,7 @@ class HAN(object):
             'l2_regulizer': 1e-13,
             'dropout_regulizer' : 0.5,
             'rnn' : GRU,
-            'rnn_units' : 50,
+            'rnn_units' : 100,
             'dense_units': 100,
             'activation' : 'softmax',
             'optimizer' : 'adam',
@@ -284,52 +286,35 @@ class HAN(object):
             dropout_regularizer = 1
         else:
             dropout_regularizer = self.hyperparameters['dropout_regulizer']
-        word_input = Input(
-            shape=(self.max_senten_len,),
-            dtype='float32')
+
+        word_input = Input(shape=(self.max_senten_len,), dtype='float32')
         word_sequences = self.get_embedding_layer()(word_input)
         word_lstm = Bidirectional(
-            self.hyperparameters['rnn'](
-                self.hyperparameters['rnn_units'],
-                return_sequences=True,
-                kernel_regularizer=kernel_regularizer,
-                recurrent_dropout=0.2
-                )
-            )(word_sequences)
+            self.hyperparameters['rnn'](self.hyperparameters['rnn_units'], return_sequences=True, kernel_regularizer=kernel_regularizer))(word_sequences)
         word_dense = TimeDistributed(
-            Dense(
-                self.hyperparameters['dense_units'],
-                kernel_regularizer=kernel_regularizer)
-            )(word_lstm)
-        word_att = AttentionWithContext()(word_dense)
-        self.wordEncoder = Model(word_input, word_att)
+            Dense(self.hyperparameters['dense_units'], kernel_regularizer=kernel_regularizer))(word_lstm)
+        self.wordEncoder = Model(word_input, word_dense)
 
-        sent_input = Input(
-            shape=(self.max_senten_num, self.max_senten_len),
-            dtype='float32')
-        sent_encoder = TimeDistributed(self.wordEncoder)(sent_input)
-        sent_lstm = Bidirectional(
-                self.hyperparameters['rnn'](
-                    self.hyperparameters['rnn_units'],
-                    return_sequences=True,
-                    kernel_regularizer=kernel_regularizer,
-                    recurrent_dropout=0.2)
-                )(sent_encoder)
-        sent_dense = TimeDistributed(
-            Dense(
-                self.hyperparameters['dense_units'],
-                kernel_regularizer=kernel_regularizer)
-                )(sent_lstm)
-        sent_att = AttentionWithContext()(sent_dense)
-        sent_att_dropout = Dropout(
-            dropout_regularizer,
-            name="embedding_output")(sent_att)
-        preds = Dense(
-            len(self.classes),
-            activation=self.hyperparameters['activation'])(sent_att_dropout)
+        sent_input = Input(shape=(self.max_senten_num, self.max_senten_len), dtype='float32')
+        word_sequences = self.get_embedding_layer()(word_input)
+        sent_att = SeqSelfAttention(attention_width=None,
+                        attention_type=SeqSelfAttention.ATTENTION_TYPE_ADD,
+                        kernel_regularizer=keras.regularizers.l2(1e-6),
+                        use_attention_bias=True,
+                        attention_activation='softmax',
+                        name='attention_sent')(word_sequences)
+        sent_att2 = SeqSelfAttention(attention_width=None,
+                        attention_type=SeqSelfAttention.ATTENTION_TYPE_ADD,
+                        kernel_regularizer=keras.regularizers.l2(1e-6),
+                        use_attention_bias=True,
+                        attention_activation='softmax',
+                        name='attention_sent')(sent_att)
+        x = Lambda(lambda x: x, output_shape=lambda s:s)(sent_att2)
+        flatten2 = Flatten()(x)
+        sent_att_dropout = Dropout(dropout_regularizer, name="embedding_output")(flatten2)
+        preds = Dense(len(self.classes), activation=self.hyperparameters['activation'])(sent_att_dropout)
         self.model = Model(sent_input, preds)
 
-        self.wordEncoder.summary()
         self.model.summary()
         self.model.compile(
             loss=self.hyperparameters['loss'], optimizer=self.hyperparameters['optimizer'], metrics=self.hyperparameters['metrics'])
