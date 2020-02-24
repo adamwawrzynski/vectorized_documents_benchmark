@@ -5,6 +5,7 @@ from abc import ABC
 from abc import abstractmethod
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 
 class BenchmarkModel(ABC):
     def __init__(
@@ -24,11 +25,9 @@ class BenchmarkModel(ABC):
         self
     ):
         self.model = None   # assigned in concrete classes
-        self.knn = KNeighborsClassifier(
-            n_neighbors=self.n_neighbors,
-            algorithm=self.algorithm,
-            metric=self.metric,
-            n_jobs=self.n_jobs)
+        self.clf = SVC(
+            kernel='linear',
+            class_weight='balanced')
 
     @abstractmethod
     def preprocess_data(
@@ -51,16 +50,16 @@ class BenchmarkModel(ABC):
         x,
         y
     ):
-        logging.info("Training kNN classifier")
-        return self.knn.fit(self.preprocess_data(x, y), y)
+        logging.info("Training classifier")
+        return self.clf.fit(self.preprocess_data(x, y), y)
 
     def predict(
         self,
         x,
         y=None
     ):
-        logging.info("Predict on kNN classifier")
-        return self.knn.predict(self.preprocess_data(x, y))
+        logging.info("Predict on classifier")
+        return self.clf.predict(self.preprocess_data(x, y))
 
     def evaluate(
         self,
@@ -78,8 +77,8 @@ class BenchmarkModel(ABC):
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        pickle.dump(self.knn,
-            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.clf,
+            open(combined_path + "_clf.pickle", 'wb'))
         pickle.dump(self.model,
             open(combined_path + "_model.pickle", 'wb'))
 
@@ -89,8 +88,8 @@ class BenchmarkModel(ABC):
     ):
         logging.info("Loading " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        self.knn = pickle.load(
-            open(combined_path + "_knn.pickle", 'rb'))
+        self.clf = pickle.load(
+            open(combined_path + "_clf.pickle", 'rb'))
         self.model = pickle.load(
             open(combined_path + "_model.pickle", 'rb'))
 
@@ -99,5 +98,5 @@ class BenchmarkModel(ABC):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and \
+        return os.path.isfile(combined_path + "_clf.pickle") and \
             os.path.isfile(combined_path + "_model.pickle")

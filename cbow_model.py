@@ -58,8 +58,8 @@ class CBOWModel(BenchmarkModel):
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        pickle.dump(self.knn,
-            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.clf,
+            open(combined_path + "_clf.pickle", 'wb'))
         pickle.dump(self.count_vectorizer.vocabulary_,
             open(combined_path + "_vec.pickle", 'wb'))
 
@@ -69,8 +69,8 @@ class CBOWModel(BenchmarkModel):
     ):
         logging.info("Loading " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        self.knn = pickle.load(
-            open(combined_path + "_knn.pickle", 'rb'))
+        self.clf = pickle.load(
+            open(combined_path + "_clf.pickle", 'rb'))
         self.count_vectorizer = CountVectorizer(
             vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
 
@@ -79,5 +79,5 @@ class CBOWModel(BenchmarkModel):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and \
+        return os.path.isfile(combined_path + "_clf.pickle") and \
         os.path.isfile(combined_path + "_vec.pickle")

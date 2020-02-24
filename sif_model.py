@@ -51,7 +51,7 @@ class SIFModel(BenchmarkModel):
     ):
         logging.info("Training kNN classifier")
         embedded_x = self.preprocess_data(x, y)
-        return self.knn.fit(embedded_x ,y)
+        return self.clf.fit(embedded_x ,y)
 
     def preprocess_data(
         self,
@@ -68,8 +68,8 @@ class SIFModel(BenchmarkModel):
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        pickle.dump(self.knn,
-            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.clf,
+            open(combined_path + "_clf.pickle", 'wb'))
 
     def load(
         self,
@@ -77,12 +77,12 @@ class SIFModel(BenchmarkModel):
     ):
         logging.info("Loading " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        self.knn = pickle.load(
-            open(combined_path + "_knn.pickle", 'rb'))
+        self.clf = pickle.load(
+            open(combined_path + "_clf.pickle", 'rb'))
 
     def can_load(
         self,
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle")
+        return os.path.isfile(combined_path + "_clf.pickle")

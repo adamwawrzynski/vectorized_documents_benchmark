@@ -79,8 +79,8 @@ class LDAModel(BenchmarkModel):
     ):
         logging.info("Saving " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        pickle.dump(self.knn,
-            open(combined_path + "_knn.pickle", 'wb'))
+        pickle.dump(self.clf,
+            open(combined_path + "_clf.pickle", 'wb'))
         pickle.dump(self.model,
             open(combined_path + "_model.pickle", 'wb'))
         pickle.dump(self.count_vectorizer.vocabulary_,
@@ -92,8 +92,8 @@ class LDAModel(BenchmarkModel):
     ):
         logging.info("Loading " + self.__class__.__name__)
         combined_path = os.path.join(path, self.__class__.__name__)
-        self.knn = pickle.load(
-            open(combined_path + "_knn.pickle", 'rb'))
+        self.clf = pickle.load(
+            open(combined_path + "_clf.pickle", 'rb'))
         self.model = pickle.load(
             open(combined_path + "_model.pickle", 'rb'))
         self.count_vectorizer = CountVectorizer(
@@ -104,6 +104,6 @@ class LDAModel(BenchmarkModel):
         path
     ):
         combined_path = os.path.join(path, self.__class__.__name__)
-        return os.path.isfile(combined_path + "_knn.pickle") and \
+        return os.path.isfile(combined_path + "_clf.pickle") and \
         os.path.isfile(combined_path + "_model.pickle") and \
         os.path.isfile(combined_path + "_vec.pickle")
