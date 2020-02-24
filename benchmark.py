@@ -23,52 +23,88 @@ from cbow_model import CBOWModel
 
 import logging
 import multiprocessing
-cores = multiprocessing.cpu_count()-1
+cores = multiprocessing.cpu_count() - 1
 
 
 def cross_validation(
     benchmark_models,
-    train,
+    x_train,
     y_train,
-    n_splits=10,
+    x_test=None,
+    y_test=None,
+    n_splits=5
 ):
     cv = KFold(n_splits=n_splits, random_state=42, shuffle=False)
-
+    logging.info("Number of splits in sample: " + str(n_splits))
     for model in benchmark_models:
         scores = []
         trainig_times = []
-        for train_text, train_target in cv.split(train, y_train):
+        for train_text, train_target in cv.split(x_train, y_train):
             model.build_model()
             t0 = time.time()
-            model.train(train[train_text], y_train[train_text])
+            model.train(x_train[train_text], y_train[train_text])
             trainig_times.append((time.time() - t0))
-            model.fit(train[train_text], y_train[train_text])
-            scores.append(model.evaluate(train[train_target], y_train[train_target]))
+            model.fit(x_train[train_text], y_train[train_text])
+            scores.append(model.evaluate(x_train[train_target], y_train[train_target]))
 
         logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
+        logging.info(model.__class__.__name__ + ": training time std: " + str(np.std(np.array(trainig_times))))
         logging.info(model.__class__.__name__ + ": average score: " + str(np.average(scores)))
+        logging.info(model.__class__.__name__ + ": score std: " + str(np.std(scores)))
+
+def train_test_validator(
+    benchmark_models,
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    epochs=5
+):
+    logging.info("Number of realisations in sample: " + str(epochs))
+    for model in benchmark_models:
+        scores = []
+        trainig_times = []
+        for step in range(epochs):
+            model.build_model()
+            t0 = time.time()
+            model.train(x_train, y_train)
+            trainig_times.append(time.time() - t0)
+            model.fit(x_train, y_train)
+            scores.append(model.evaluate(x_test, y_test))
+
+        logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
+        logging.info(model.__class__.__name__ + ": training time std: " + str(np.std(np.array(trainig_times))))
+        logging.info(model.__class__.__name__ + ": average score: " + str(np.average(np.array(scores))))
+        logging.info(model.__class__.__name__ + ": average score std: " + str(np.std(np.array(scores))))
 
 
 parser =  argparse.ArgumentParser(
     description="Benchmark for documents embedding methods")
 
 parser.add_argument("-d",
-    "--dataset",
-    dest="dataset",
+    "--dataset_path",
+    dest="dataset_path",
     required=True,
     help="Path to dataset")
 
 parser.add_argument("-m",
-    "--models",
+    "--models_path",
     dest="models_path",
     required=True,
     help="Path to models")
 
 parser.add_argument("-p",
-    "--pretrained",
+    "--pretrained_path",
     dest="pretrained_path",
     required=True,
     help="Path to pretrained embedding model")
+
+parser.add_argument("-n",
+    "--dataset_name",
+    dest="dataset_name",
+    choices=['bbc','yahoo','20newsgroups', 'reuters', 'ohsumed'],
+    required=True,
+    help="Name of dataset")
 
 parser.add_argument("-r",
     "--restore",
@@ -95,26 +131,39 @@ else:
     format='%(asctime)s : %(levelname)s : %(message)s',
     level=logging.INFO)
 
-logging.info(args.dataset)
+logging.info(args.dataset_path)
 
-# x, y = load_bbc_dataset(args.dataset)
-x, y = load_yahoo_answers_dataset(args.dataset)
-# x, y = load_news_groups_dataset(args.dataset)
-# x, y = load_reuters_dataset(args.dataset)
-# x, y = load_ohsumed_dataset(args.dataset)
+num_categories = 0
+load_dataset = None
+validator = None
 
-train, test, y_train, y_test = train_test_split(
-    x,
-    y,
-    train_size=0.2)
+if args.dataset_name == "bbc":
+    load_dataset = load_bbc_dataset
+    num_categories = 5
+    validator = cross_validation
+elif args.dataset_name == "yahoo":
+    load_dataset = load_yahoo_answers_dataset
+    num_categories = 10
+    validator = cross_validation
+elif args.dataset_name == "20newsgroups":
+    load_dataset = load_news_groups_dataset
+    num_categories = 20
+    validator = cross_validation
+elif args.dataset_name == "reuters":
+    load_dataset = load_reuters_dataset
+    num_categories = 91
+    validator = train_test_validator
+elif args.dataset_name == "ohsumed":
+    load_dataset = load_ohsumed_dataset
+    num_categories = 23
+    validator = train_test_validator
 
-train = train.reset_index(drop=True)
-y_train = y_train.reset_index(drop=True)
+x_train, x_test, y_train, y_test = load_dataset(args.dataset_path)
 
 han = HANModel(
-    text = train['text'],
+    text = x_train['text'],
     labels = y_train['target'],
-    num_categories = 10,
+    num_categories = num_categories,
     pretrained_embedded_vector_path = args.pretrained_path,
     max_features = 200000,
     max_senten_len = 100,
@@ -140,7 +189,7 @@ doc2veccbow = Doc2VecDBOWModel(
     min_count=1)
 
 sif = SIFModel(
-    text = train['text'],
+    text = x_train['text'],
     labels = y_train['target'],
     pretrained_embedded_vector_path = args.pretrained_path,
     embedding_size=100)
@@ -171,4 +220,10 @@ cbow = CBOWModel(
     min_df=1)
 
 benchmark_models = [cbow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
-cross_validation(benchmark_models, x['text'], y['target'], n_splits=5)
+
+validator(
+    benchmark_models, 
+    x_train['text'], 
+    y_train['target'],
+    x_train['text'],
+    y_train['target'])
