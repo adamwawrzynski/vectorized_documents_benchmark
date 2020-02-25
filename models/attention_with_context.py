@@ -1,12 +1,7 @@
-from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from keras.engine.topology import Layer
 from keras import initializers as initializers, regularizers, constraints
-from keras.callbacks import Callback, ModelCheckpoint
-from keras.utils.np_utils import to_categorical
-from keras.layers import Embedding, Input, Dense, LSTM, GRU, Bidirectional, TimeDistributed
-from keras import backend as K
-from keras import optimizers
-from keras.models import Model
+from keras.engine.topology import Layer
+
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara

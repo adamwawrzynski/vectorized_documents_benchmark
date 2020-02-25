@@ -1,21 +1,21 @@
-import pandas as pd
-import numpy as np
-import re
-import time
-import os
+import itertools
 import logging
-from sklearn.decomposition import PCA
+import os
+import time
+from collections import Counter
+
+import numpy as np
+import pandas as pd
 from gensim.models import KeyedVectors
 from gensim.scripts.glove2word2vec import glove2word2vec
+from sklearn.decomposition import PCA
+
 from preprocess import clean_string
 from preprocess import preprocess_text
-from preprocess import process_dataset
+
 
 # Implementation based on: https://github.com/peter3125/sentence2vec
 # Author: https://github.com/peter3125
-
-from collections import Counter
-import itertools
 
 class SIF(object):
     def __init__(

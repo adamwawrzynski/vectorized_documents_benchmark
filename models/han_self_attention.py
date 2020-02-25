@@ -1,30 +1,22 @@
-import pandas as pd
-import numpy as np
-from keras.preprocessing.text import Tokenizer, text_to_word_sequence
-from keras.engine.topology import Layer
-from keras import initializers as initializers, regularizers, constraints
-from keras.callbacks import Callback, ModelCheckpoint, EarlyStopping
-from keras.utils.np_utils import to_categorical
-from keras.layers import Embedding, Input, Dense, LSTM, GRU, Bidirectional, TimeDistributed, Dropout, Flatten, Lambda
-from keras import backend as K
-from keras import optimizers
-from keras.models import Model
-from keras.models import load_model
-import nltk
-import re
-import sys
-from sklearn.metrics import roc_auc_score
-from nltk import tokenize
-from sklearn.utils import shuffle
-import re
-import time
-import os
 import logging
-from sklearn import metrics
-from preprocess import clean_string
+import os
 
 import keras
+import numpy as np
+import pandas as pd
+from keras import regularizers
+from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.layers import Embedding, Input, Dense, GRU, Bidirectional, TimeDistributed, Dropout, Flatten, Lambda
+from keras.models import Model
+from keras.models import load_model
+from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from keras_self_attention import SeqSelfAttention
+from nltk import tokenize
+from sklearn import metrics
+
+from models.attention_with_context import AttentionWithContext
+from preprocess import clean_string
+
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
