@@ -5,6 +5,31 @@ from abc import abstractmethod
 from preprocess import process_dataset
 from gensim.models.doc2vec import Doc2Vec
 from gensim.models.doc2vec import TaggedDocument
+from preprocess import process_string, preprocess_text, process_dataset, TextPreprocessor
+from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin, BaseEstimator
+
+
+class Doc2VecSklearnVectorizer(BaseEstimator, TransformerMixin):
+    def __init__(self, model):
+        self.transformer = TextPreprocessor()
+        self.model = model
+
+    def fit(self, X, y=None):
+        X_copy = X.copy()
+        text = self.transformer.transform(X_copy)
+        process_text = [w.split(" ") for w in text]
+        documents = [TaggedDocument(doc, [tag]) for doc, tag in zip(process_text, y)]
+        self.model.build_vocab(documents)
+        self.model.train(documents, total_examples=self.model.corpus_count, epochs=self.model.epochs)
+        return self
+
+    def transform(self, X, *_):
+        X_copy = X.copy()
+
+        processed_dataset = self.transformer.transform(X_copy)
+        vectors = [self.model.infer_vector(processed_dataset[doc_id].split(" ")) for doc_id in range(len(processed_dataset))]
+        return vectors
 
 
 class Doc2VecModel(BenchmarkModel):
@@ -24,31 +49,6 @@ class Doc2VecModel(BenchmarkModel):
         self
     ):
         super().build_model()
-
-    def train(
-        self,
-        x,
-        y
-    ):
-        logging.info("Training " + self.__class__.__name__)
-        t0 = time.time()
-        processed_x = process_dataset(x)
-        documents = [TaggedDocument(doc, [tag]) for doc, tag in zip(processed_x, y)]
-        self.model.build_vocab(documents)
-        self.model.train(documents, total_examples=self.model.corpus_count, epochs=self.model.epochs)
-        elapsed = (time.time() - t0)
-        logging.info("Done in %.3fsec" % elapsed)
-
-    def preprocess_data(
-        self,
-        dataset,
-        y_dataset
-    ):
-        logging.info("Transforming data on " + self.__class__.__name__)
-        processed_dataset = process_dataset(dataset).tolist()
-        vectors = [self.model.infer_vector(processed_dataset[doc_id]) for doc_id in range(len(processed_dataset))]
-        return vectors
-
 
 class Doc2VecDMModel(Doc2VecModel):
     def __init__(
@@ -72,7 +72,7 @@ class Doc2VecDMModel(Doc2VecModel):
         self
     ):
         super().build_model()
-        self.model = Doc2Vec(
+        self.doc2vec = Doc2Vec(
             dm=1,
             negative=self.negative,
             vector_size=self.vector_size,
@@ -80,6 +80,12 @@ class Doc2VecDMModel(Doc2VecModel):
             min_count=self.min_count,
             workers=self.workers,
             epochs=self.epochs)
+        self.pipeline = Pipeline(steps=[
+            ("preprocess", TextPreprocessor()),
+            ("vectorizer", Doc2VecSklearnVectorizer(self.doc2vec)),
+            ("classifier", self.clf)
+        ])
+
 
 class Doc2VecDBOWModel(Doc2VecModel):
     def __init__(
@@ -103,7 +109,7 @@ class Doc2VecDBOWModel(Doc2VecModel):
         self
     ):
         super().build_model()
-        self.model = Doc2Vec(
+        self.doc2vec = Doc2Vec(
             dm=0,
             negative=self.negative,
             vector_size=self.vector_size,
@@ -111,3 +117,8 @@ class Doc2VecDBOWModel(Doc2VecModel):
             min_count=self.min_count,
             workers=self.workers,
             epochs=self.epochs)
+        self.pipeline = Pipeline(steps=[
+            ("preprocess", TextPreprocessor()),
+            ("vectorizer", Doc2VecSklearnVectorizer(self.doc2vec)),
+            ("classifier", self.clf)
+        ])

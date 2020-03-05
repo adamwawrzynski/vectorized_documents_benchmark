@@ -5,7 +5,8 @@ import os
 from models.benchmark_model import BenchmarkModel
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
-from preprocess import process_dataset
+from preprocess import process_string, preprocess_text, process_dataset, TextPreprocessor
+from sklearn.pipeline import Pipeline
 
 
 class LDAModel(BenchmarkModel):
@@ -34,7 +35,7 @@ class LDAModel(BenchmarkModel):
         self
     ):
         super().build_model()
-        self.model = LatentDirichletAllocation(
+        self.lda = LatentDirichletAllocation(
             n_components=self.n_components,
             learning_method=self.learning_method,
             learning_decay=self.learning_decay,
@@ -45,31 +46,15 @@ class LDAModel(BenchmarkModel):
             max_df=self.max_df,
             min_df=self.min_df,
             stop_words='english')
+        self.build_pipeline()
 
-    def train(
-        self,
-        x,
-        y=None
-    ):
-        logging.info("Building vocabulary on " + self.__class__.__name__)
-        t0 = time.time()
-        processed_dataset = process_dataset(x)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        doc_term_matrix = self.count_vectorizer.fit_transform(processed_dataset.values.astype('U'))
-        self.model.fit(doc_term_matrix)
-        elapsed = (time.time() - t0)
-        logging.info("Done in %.3fsec" % elapsed)
-
-    def preprocess_data(
-        self,
-        dataset,
-        y_dataset
-    ):
-        logging.info("Transform data on " + self.__class__.__name__)
-        processed_dataset = process_dataset(dataset)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        doc_term_matrix = self.count_vectorizer.transform(processed_dataset.values.astype('U'))
-        return self.model.transform(doc_term_matrix)
+    def build_pipeline(self):
+        self.pipeline = Pipeline(steps=[
+            ("preprocess", TextPreprocessor()),
+            ("vectorizer", self.count_vectorizer),
+            ("lda", self.lda),
+            ("classifier", self.clf)
+        ])
 
     def save(
         self,
@@ -96,6 +81,7 @@ class LDAModel(BenchmarkModel):
             open(combined_path + "_model.pickle", 'rb'))
         self.count_vectorizer = CountVectorizer(
             vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
+        self.build_model()
 
     def can_load(
         self,

@@ -37,9 +37,8 @@ def cross_validation(
         for train_text, train_target in cv.split(x_train, y_train):
             model.build_model()
             t0 = time.time()
-            model.train(x_train[train_text], y_train[train_text])
-            trainig_times.append((time.time() - t0))
             model.fit(x_train[train_text], y_train[train_text])
+            trainig_times.append((time.time() - t0))
             scores.append(model.evaluate(x_train[train_target], y_train[train_target]))
 
         logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
@@ -62,9 +61,8 @@ def train_test_validator(
         for step in range(epochs):
             model.build_model()
             t0 = time.time()
-            model.train(x_train, y_train)
-            trainig_times.append(time.time() - t0)
             model.fit(x_train, y_train)
+            trainig_times.append(time.time() - t0)
             scores.append(model.evaluate(x_test, y_test))
 
         logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
@@ -193,7 +191,7 @@ lda = LDAModel(
     n_components=100,
     max_features=None,
     max_df=0.95,
-    min_df=1,
+    min_df=0,
     epochs=10,
     cores=cores)
 
@@ -202,23 +200,23 @@ lsa = LSAModel(
     n_features=None,
     n_iter=10,
     max_df=0.95,
-    min_df=1)
+    min_df=0)
 
 tfidf = TfIdfModel(
     n_features=None,
     max_df=0.95,
-    min_df=1)
+    min_df=0)
 
 cbow = CBOWModel(
     max_features=None,
     max_df=0.95,
-    min_df=1)
+    min_df=0)
 
 benchmark_models = [cbow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
 
 validator(
-    benchmark_models, 
-    x_train['text'], 
-    y_train['target'],
+    benchmark_models,
     x_train['text'],
-    y_train['target'])
+    y_train['target'],
+    x_test['text'],
+    y_test['target'])

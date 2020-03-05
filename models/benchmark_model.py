@@ -1,13 +1,13 @@
 import logging
-import pickle
 import os
-from abc import ABC
-from abc import abstractmethod
+import pickle
 from sklearn import metrics
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.base import BaseEstimator
 
-class BenchmarkModel(ABC):
+
+class BenchmarkModel(BaseEstimator):
     def __init__(
         self,
         n_neighbors=3,
@@ -24,52 +24,48 @@ class BenchmarkModel(ABC):
     def build_model(
         self
     ):
-        self.model = None   # assigned in concrete classes
-        self.clf = SVC(
+        self.clf_svc = SVC(
             kernel='linear',
             class_weight='balanced')
-
-    @abstractmethod
-    def preprocess_data(
-        self,
-        dataset,
-        y_dataset
-    ):
-        raise Exception("Not implemented!")
-
-    @abstractmethod
-    def train(
-        self,
-        x,
-        y=None
-    ):
-        raise Exception("Not implemented!")
+        # CalibartedClassifierCV is used in order to use eli5 module to explain model predictions
+        self.clf = CalibratedClassifierCV(self.clf_svc)
+        self.pipeline = None
 
     def fit(
         self,
         x,
         y
     ):
-        logging.info("Training classifier")
-        return self.clf.fit(self.preprocess_data(x, y), y)
+        logging.info("Training classifier " + self.__class__.__name__)
+        return self.pipeline.fit(x, y)
+
+    # sklearn compliant API function
+    def predict_proba(
+        self,
+        x
+    ):
+        return self.pipeline.predict_proba(x)
 
     def predict(
         self,
         x,
         y=None
     ):
-        logging.info("Predict on classifier")
-        return self.clf.predict(self.preprocess_data(x, y))
+        logging.info("Predict on classifier " + self.__class__.__name__)
+        return self.pipeline.predict(x)
 
     def evaluate(
         self,
         x,
         y=None
     ):
-        y_pred = self.predict(x, y)
+        y_pred = self.pipeline.predict(x)
         result = metrics.accuracy_score(y, y_pred)
         logging.info("Accuracy: %.3f" % result)
         return result
+
+    def score(self, x, y):
+        return self.evaluate(x, y)
 
     def save(
         self,

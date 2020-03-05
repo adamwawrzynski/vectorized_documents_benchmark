@@ -5,7 +5,8 @@ import os
 from models.benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
-from preprocess import process_dataset
+from preprocess import TextPreprocessor
+from sklearn.pipeline import Pipeline
 
 
 class LSAModel(BenchmarkModel):
@@ -35,32 +36,16 @@ class LSAModel(BenchmarkModel):
             stop_words='english',
             use_idf=True)
 
-        self.model = TruncatedSVD(self.svd_features, n_iter=self.n_iter)
+        self.svd = TruncatedSVD(self.svd_features, n_iter=self.n_iter)
+        self.build_pipeline()
 
-    def train(
-        self,
-        x,
-        y=None
-    ):
-        logging.info("Building vectorizer on " + self.__class__.__name__)
-        t0 = time.time()
-        processed_dataset = process_dataset(x)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        tfidf = self.tfidf_vectorizer.fit_transform(processed_dataset.values.astype('U'))
-        self.model.fit(tfidf)
-        elapsed = (time.time() - t0)
-        logging.info("Done in %.3fsec" % elapsed)
-
-    def preprocess_data(
-        self,
-        dataset,
-        y_dataset
-    ):
-        logging.info("Transforming data on " + self.__class__.__name__)
-        processed_dataset = process_dataset(dataset)
-        processed_dataset = processed_dataset.map(lambda x: ' '.join(word for word in x))
-        tfidf = self.tfidf_vectorizer.transform(processed_dataset.values.astype('U'))
-        return self.model.transform(tfidf)
+    def build_pipeline(self):
+        self.pipeline = Pipeline(steps=[
+            ("preprocess", TextPreprocessor()),
+            ("vectorizer", self.tfidf_vectorizer),
+            ("svd", self.svd),
+            ("classifier", self.clf)
+        ])
 
     def save(
         self,
@@ -91,6 +76,7 @@ class LSAModel(BenchmarkModel):
             vocabulary=pickle.load(open(combined_path + "_vec.pickle", 'rb')))
         self.tfidf_vectorizer.idf_ = pickle.load(
             open(combined_path + "_vec_idf.pickle", 'rb'))
+        self.build_model()
 
     def can_load(
         self,

@@ -1,9 +1,26 @@
 import logging
-import time
 import pickle
 import os
 from models.benchmark_model import BenchmarkModel
 from models.sif import SIF
+
+from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin, BaseEstimator
+
+
+class SIFSklearnVectorizer(BaseEstimator, TransformerMixin):
+    def __init__(self, model):
+        self.model = model
+
+    def fit(self, X, y=None):
+        X_copy = list(X)
+        self.model.train(X_copy, y)
+        return self
+
+    def transform(self, X, *_):
+        X_copy = list(X)
+        vectors, _ = self.model.preprocess_data(X_copy, _)
+        return vectors
 
 
 class SIFModel(BenchmarkModel):
@@ -24,40 +41,15 @@ class SIFModel(BenchmarkModel):
         self
     ):
         super().build_model()
-        self.model = SIF(
+        self.sif = SIF(
             self.text,
             self.labels,
             self.pretrained_embedded_vector_path,
             self.embedding_size)
-
-    def train(
-        self,
-        x,
-        y=None
-    ):
-        logging.info("Building vectorizer on " + self.__class__.__name__)
-        t0 = time.time()
-        self.model.train(x, y)
-        elapsed = (time.time() - t0)
-        logging.info("Done in %.3fsec" % elapsed)
-
-    def fit(
-        self,
-        x,
-        y
-    ):
-        logging.info("Training kNN classifier")
-        embedded_x = self.preprocess_data(x, y)
-        return self.clf.fit(embedded_x ,y)
-
-    def preprocess_data(
-        self,
-        dataset,
-        y_dataset
-    ):
-
-        x, _ = self.model.preprocess_data(dataset, y_dataset)
-        return x
+        self.pipeline = self.pipeline = Pipeline(steps=[
+            ("vectorizer", SIFSklearnVectorizer(self.sif)),
+            ("classifier", self.clf)
+        ])
 
     def save(
         self,
@@ -76,6 +68,7 @@ class SIFModel(BenchmarkModel):
         combined_path = os.path.join(path, self.__class__.__name__)
         self.clf = pickle.load(
             open(combined_path + "_clf.pickle", 'rb'))
+        self.build_model()
 
     def can_load(
         self,
