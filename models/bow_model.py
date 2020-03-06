@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn import metrics
 
 
-class CBOWModel(BenchmarkModel):
+class BOWModel(BenchmarkModel):
     def __init__(
             self,
             max_features,

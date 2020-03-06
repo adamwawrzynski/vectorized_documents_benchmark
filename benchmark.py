@@ -14,7 +14,7 @@ from models.lda_model import LDAModel
 from models.lsa_model import LSAModel
 from models.han_model import HANModel
 from models.sif_model import SIFModel
-from models.cbow_model import CBOWModel
+from models.bow_model import BOWModel
 
 import logging
 import multiprocessing
@@ -207,12 +207,12 @@ tfidf = TfIdfModel(
     max_df=0.95,
     min_df=0)
 
-cbow = CBOWModel(
+bow = BOWModel(
     max_features=None,
     max_df=0.95,
     min_df=0)
 
-benchmark_models = [cbow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
+benchmark_models = [bow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
 
 validator(
     benchmark_models,
