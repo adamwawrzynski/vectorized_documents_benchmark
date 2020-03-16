@@ -8,6 +8,7 @@ from load_dataset import load_news_groups_dataset
 from load_dataset import load_yahoo_answers_dataset
 from load_dataset import load_ohsumed_dataset
 from load_dataset import load_reuters_dataset
+from models.CustomTfIdfModel import CustomTfIdfModel
 from models.tfidf_model import TfIdfModel
 from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
 from models.lda_model import LDAModel
@@ -152,67 +153,70 @@ elif args.dataset_name == "ohsumed":
     validator = train_test_validator
 
 x_train, x_test, y_train, y_test = load_dataset(args.dataset_path)
+#
+# han = HANModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     num_categories = num_categories,
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     max_features = 200000,
+#     max_senten_len = 100,
+#     max_senten_num = 30,
+#     embedding_size = 100,
+#     validation_split=0.2,
+#     verbose=1,
+#     batch_size=8,
+#     epochs=10)
+#
+# doc2vecdm = Doc2VecDMModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
+#
+# doc2veccbow = Doc2VecDBOWModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
+#
+# sif = SIFModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     embedding_size=100)
+#
+# lda = LDAModel(
+#     n_components=100,
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=0,
+#     epochs=10,
+#     cores=cores)
+#
+# lsa = LSAModel(
+#     svd_features=100,
+#     n_features=None,
+#     n_iter=10,
+#     max_df=0.95,
+#     min_df=0)
+#
+# tfidf = TfIdfModel(
+#     n_features=None,
+#     max_df=0.95,
+#     min_df=0)
+#
+# bow = BOWModel(
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=0)
+#
+# benchmark_models = [bow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
 
-han = HANModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    num_categories = num_categories,
-    pretrained_embedded_vector_path = args.pretrained_path,
-    max_features = 200000,
-    max_senten_len = 100,
-    max_senten_num = 30,
-    embedding_size = 100,
-    validation_split=0.2,
-    verbose=1,
-    batch_size=8,
-    epochs=10)
-
-doc2vecdm = Doc2VecDMModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-doc2veccbow = Doc2VecDBOWModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-sif = SIFModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    pretrained_embedded_vector_path = args.pretrained_path,
-    embedding_size=100)
-
-lda = LDAModel(
-    n_components=100,
-    max_features=None,
-    max_df=0.95,
-    min_df=0,
-    epochs=10,
-    cores=cores)
-
-lsa = LSAModel(
-    svd_features=100,
-    n_features=None,
-    n_iter=10,
-    max_df=0.95,
-    min_df=0)
-
-tfidf = TfIdfModel(
-    n_features=None,
-    max_df=0.95,
-    min_df=0)
-
-bow = BOWModel(
-    max_features=None,
-    max_df=0.95,
-    min_df=0)
-
-benchmark_models = [bow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
+custom_tfidf = CustomTfIdfModel()
+benchmark_models = [custom_tfidf]
 
 validator(
     benchmark_models,
