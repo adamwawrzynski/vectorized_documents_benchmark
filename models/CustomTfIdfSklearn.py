@@ -28,7 +28,7 @@ import numpy as np
 from sklearn.utils.validation import check_is_fitted, FLOAT_DTYPES
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
-vocabulary_size = 20000
+vocabulary_size = None
 
 
 class CustomTfidfVectorizer(CountVectorizer):
@@ -120,11 +120,11 @@ class CustomTfidfVectorizer(CountVectorizer):
         self.unigram_vectorizer = CountVectorizer(analyzer="word", ngram_range=(1, 1), max_features=vocabulary_size)
         self.unigram_vectorizer.fit(raw_documents)
 
-        self.bigram_vectorizer = CountVectorizer(analyzer="word", ngram_range=(1, 2), max_features=vocabulary_size)
-        self.bigram_vectorizer.fit(raw_documents)
-
-        self.pmi_matrix = sp.csr_matrix(
-            (len(self.unigram_vectorizer.vocabulary_), len(self.unigram_vectorizer.vocabulary_)), dtype='float')
+        # self.bigram_vectorizer = CountVectorizer(analyzer="word", ngram_range=(1, 2), max_features=vocabulary_size)
+        # self.bigram_vectorizer.fit(raw_documents)
+        # 
+        # self.pmi_matrix = sp.csr_matrix(
+        #     (len(self.unigram_vectorizer.vocabulary_), len(self.unigram_vectorizer.vocabulary_)), dtype='float')
 
         # pmi_matrix = np.zeros((len(raw_documents), len(self.vocabulary_), len(self.vocabulary_)), dtype='float')
 
