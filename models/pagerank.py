@@ -172,9 +172,9 @@ class CustomModel(object):
 
         tf.reset_default_graph()
 
-        self.A1 = tf.placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape],
-                                 name="adjency_matrix_placeholder")
-        # self.A1 = tf.compat.v1.sparse_placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape], name="adjency_matrix_placeholder")
+        # self.A1 = tf.placeholder(dtype=tf.float32, shape=[None, self.input_shape, self.input_shape],
+        #                          name="adjency_matrix_placeholder")
+        self.A1 = tf.compat.v1.sparse_placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape], name="adjency_matrix_placeholder")
         self.y_placeholder = tf.placeholder(dtype=tf.float32, shape=[self.classes, 1], name="y_placeholder")
         # self.F1 = tf.placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape],
         #                         name="features_matrix_placeholder")
@@ -187,24 +187,30 @@ class CustomModel(object):
         self.W3 = tf.Variable(tf.random_normal([100, self.input_shape]), trainable=True, name="weights3")
         self.W4 = tf.Variable(tf.random_normal([self.classes, 100]), trainable=True, name="weights4")
 
-        self.F1_dot_1 = tf.multiply(self.F1, self.A1, name="F1_dot_1")
-        # self.F1_dot_1 = self.F1.__mul__(self.A1)
+        # self.F1_dot_1 = tf.multiply(self.F1, self.A1, name="F1_dot_1")
+        # self.F1_dot_1 = tf.einsum('aij,aij->aij', self.A1, self.F1)
+
+        self.F1_dot_1 = self.F1.__mul__(self.A1)
         # self.F1_dot_1 = self.A1.__mul__(self.F1)
-        self.F1_dot_2 = tf.matmul(self.F1_dot_1, self.W1, name="F1_dot_2")
-        # self.F1_dot_2 = tf.sparse.sparse_dense_matmul(self.F1_dot_1, self.W1, name="F1_dot_2")
+        # self.F1_dot_2 = tf.einsum('aij,jk->aik', self.F1_dot_1, self.W1)
 
-        self.F2_dot_1 = tf.contrib.layers.dense_to_sparse(self.F1_dot_2).__mul__(self.A1)
-        # self.F2_dot_1 = self.A1.__mul__(self.F1_dot_2)
+        self.F1_dot_2 = tf.sparse.sparse_dense_matmul(self.F1_dot_1, self.W1, name="F1_dot_2")
+
+        # self.F2_dot_1 = tf.contrib.layers.dense_to_sparse(self.F1_dot_2).__mul__(self.A1)
+        # self.F2_dot_1 = tf.einsum('aij,aij->aij', self.A1, self.F1_dot_2)
+
+        self.F2_dot_1 = self.A1.__mul__(self.F1_dot_2)
         # self.F2_dot_1 = tf.multiply(self.F1_dot_2, self.A1, name="F2_dot_1")
-        # self.F2_dot_2 = tf.matmul(self.F2_dot_1, self.W2, name="F2_dot_2")
         self.F2_dot_2 = tf.sparse.sparse_dense_matmul(self.F2_dot_1, self.W2, name="F2_dot_2")
+        # self.F2_dot_2 = tf.einsum('aij,jk->aik', self.F2_dot_1, self.W2)
 
-        self.F3_dot = tf.matmul(self.W3, self.F2_dot_2, name="F3_dot")
+        # self.F3_dot = tf.einsum('ij,ajk->aik', self.W3, self.F2_dot_2)
+        self.F3_dot = tf.matmul(self.W3, self.F2_dot_2)
         self.activation3 = tf.nn.elu(self.F3_dot, name="activation3")
 
-        self.F4_dot = tf.matmul(self.W4, self.activation3, name="F4_dot")
+        # self.F4_dot = tf.einsum('ij,ajk->aik', self.W4, self.activation3)
+        self.F4_dot = tf.matmul(self.W4, self.F3_dot)
         self.activation4 = tf.nn.elu(self.F4_dot, name="activation4")
-
         self.y_pred = tf.nn.softmax(self.activation4, axis=0, name="y_pred")
 
         self.y_clipped = tf.clip_by_value(self.y_pred, 1e-10, 0.9999999, name="y_clipped")
@@ -221,31 +227,31 @@ class CustomModel(object):
     def _convert_to_one_hot(self, a, num_classes):
         return np.squeeze(np.eye(num_classes)[a.reshape(-1)]).reshape(num_classes, 1)
 
-    def _normalize_adjency_matrix(self, A):
-        # create self co-ocurance in adjecency matrix
-        I = np.eye(A.shape[0], dtype=float)
-        A_hat = A + I
-
-        # calculate degree of each vertex
-        D = np.sum(A_hat, axis=1)
-
-        # create diagonal matrix with inversed vertex degree as values
-        for d in range(0, D.shape[0]):
-            if D[d]:
-                D[d] = 1.0 / D[d]
-
-        A_hat = np.multiply(A_hat, D)
-        # return sparse.csr_matrix(A_hat)
-        return A_hat
+    # def _normalize_adjency_matrix(self, A):
+    #     # create self co-ocurance in adjecency matrix
+    #     I = np.eye(A.shape[0], dtype=float)
+    #     A_hat = A + I
+    #
+    #     # calculate degree of each vertex
+    #     D = np.sum(A_hat, axis=1)
+    #
+    #     # create diagonal matrix with inversed vertex degree as values
+    #     for d in range(0, D.shape[0]):
+    #         if D[d]:
+    #             D[d] = 1.0 / D[d]
+    #
+    #     A_hat = np.multiply(A_hat, D)
+    #     # return sparse.csr_matrix(A_hat)
+    #     return A_hat
 
     def _train_iteration(self, sess, A, F, y):
-        A_hat = self._normalize_adjency_matrix(A)
+        # A_hat = self._normalize_adjency_matrix(A)
         _, loss = sess.run([self.optimizer, self.loss],
-                             feed_dict={# self.A1: convert_sparse_matrix_to_sparse_tensor(A_hat),
-                                        self.A1: A_hat,
+                             feed_dict={self.A1: convert_sparse_matrix_to_sparse_tensor(A),
+                                        # self.A1: A,
                                         # self.F1: convert_sparse_matrix_to_sparse_tensor(F),
-                                        # self.F1: F.todense(),
                                         self.F1: F.reshape(-1, 1).todense(),
+                                        # self.F1: [F[x].reshape(-1, 1).todense() for x in range(F.shape[0])],
                                         self.y_placeholder: y
                                         })
         # print(sess.run(self.accuracy,
@@ -257,13 +263,13 @@ class CustomModel(object):
         return loss
 
     def _predict_iteration(self, sess, A, F):
-        A_hat = self._normalize_adjency_matrix(A)
+        # A_hat = self._normalize_adjency_matrix(A)
         vec = sess.run(["activation3:0"],
-                             feed_dict={# "adjency_matrix_placeholder:0": convert_sparse_matrix_to_sparse_tensor(A_hat),
-                                        "adjency_matrix_placeholder:0": A_hat,
+                             feed_dict={"adjency_matrix_placeholder:0": convert_sparse_matrix_to_sparse_tensor(A),
+                                        # "adjency_matrix_placeholder:0": A,
                                         # "features_matrix_placeholder:0": convert_sparse_matrix_to_sparse_tensor(F)
-                                        # "features_matrix_placeholder:0": F.todense()
                                         "features_matrix_placeholder:0": F.reshape(-1, 1).todense()
+                                        # "features_matrix_placeholder:0": [F[x].reshape(-1, 1).todense() for x in range(F.shape[0])]
                                         })
         return vec[0].reshape(-1)
 
@@ -301,13 +307,13 @@ class CustomModel(object):
                                                  signature_def_map={'predict': signature})
             builder.save()
 
-    def train_generator(self, factory, docs, F, y, epochs):
+    def train_generator(self, factory, docs, F, y, epochs, batch_size=1):
         with tf.Session() as sess:
             sess.run(self.init)
             for epoch in range(epochs):
                 avg_cost = 0
                 counter = 0
-                generator = factory(docs)
+                generator = factory(docs, batch_size)
                 for item in generator:
                     print("Iteration: {}".format(counter + 1), end='\r', flush=True)
 
@@ -319,7 +325,7 @@ class CustomModel(object):
                     )
 
                     avg_cost = avg_cost + cost
-                    counter = counter + 1
+                    counter += 1
                 avg_cost /= counter
                 print("Epoch:", (epoch + 1), "cost =", "{:.3f}".format(avg_cost))
 
@@ -352,24 +358,26 @@ class CustomModel(object):
                 doc_vec.append(self._predict_iteration(sess=sess, A=A[i], F=F[i]))
         return doc_vec
 
-    def predict_generator(self, factory, docs, F):
+    def predict_generator(self, factory, docs, F, batch_size=1):
         with tf.Session() as sess:
             tf.saved_model.loader.load(sess,
                                        [tag_constants.SERVING],
                                        os.path.join(os.path.abspath(os.getcwd()), 'custom_model'))
-            # graph = tf.Graph()
+
             doc_vec = []
             counter = 0
-            generator = factory(docs)
+            generator = factory(docs, batch_size)
             for item in generator:
                 print("Vectorization: {}".format(counter + 1), end='\r', flush=True)
+
                 doc_vec.append(self._predict_iteration(sess=sess, A=item, F=F[counter]))
                 counter += 1
         return doc_vec
 
 
 def pagerank_train(A, F, y, classes = 5, epochs: int = 2):
-    A1 = tf.placeholder(tf.float32, shape=[A[0].shape[0], A[0].shape[1]])
+    # A1 = tf.placeholder(tf.float32, shape=[A[0].shape[0], A[0].shape[1]])
+    A1 = tf.compat.v1.sparse.placeholder(dtype=tf.float32, shape=[A[0].shape[0], A[0].shape[1]])
     y_placeholder = tf.placeholder(tf.float32, shape=[classes, 1])
     # F1 = tf.compat.v1.sparse.placeholder(dtype=tf.float32, shape=[F.shape[0], F.shape[1]])
     F1 = tf.placeholder(dtype=tf.float32, shape=[F.shape[0], F.shape[1]])
@@ -379,8 +387,8 @@ def pagerank_train(A, F, y, classes = 5, epochs: int = 2):
     W3 = tf.Variable(tf.random_normal([100, A[0].shape[0]]), trainable=True, name="weights3")
     W4 = tf.Variable(tf.random_normal([classes, 100]), trainable=True, name="weights4")
 
-    # F1_dot = tf.sparse.sparse_dense_matmul(F1, A1)
-    F1_dot = tf.multiply(F1, A1)
+    F1_dot = tf.sparse.sparse_dense_matmul(F1, A1)
+    # F1_dot = tf.multiply(F1, A1)
     F1_dot = tf.sparse.sparse_dense_matmul(tf.contrib.layers.dense_to_sparse(F1_dot), W1)
     # activation1 = tf.nn.elu(F1_dot, name="relu1")
 

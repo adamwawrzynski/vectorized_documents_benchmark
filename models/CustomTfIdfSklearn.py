@@ -150,7 +150,7 @@ class CustomTfidfVectorizer(CountVectorizer):
         self.custom_model = CustomModel(len(self.unigram_vectorizer.vocabulary_), len(np.unique(y)))
         # self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, self.pmi_matrix, y, 5)
 
-        self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, result, y, 5)
+        self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, result, y, 10)
 
         return self
 
@@ -189,14 +189,31 @@ class CustomTfidfVectorizer(CountVectorizer):
         # ngrams[ngrams > 0] = 1
         co_occurance = (ngrams.T * ngrams)
         co_occurance.setdiag(0)
-        return co_occurance
+        return self._normalize_adjency_matrix(co_occurance)
 
-    def _co_occurance_generator(self, raw_documents):
+    def _normalize_adjency_matrix(self, A):
+        # create self co-ocurance in adjecency matrix
+        I = np.eye(A.shape[0], dtype=float)
+        A_hat = A + I
+
+        # calculate degree of each vertex
+        D = np.sum(A_hat, axis=1)
+
+        # create diagonal matrix with inversed vertex degree as values
+        for d in range(0, D.shape[0]):
+            if D[d]:
+                D[d] = 1.0 / D[d]
+
+        A_hat = np.multiply(A_hat, D)
+        return sp.csr_matrix(A_hat)
+        # return A_hat
+
+    def _co_occurance_generator(self, raw_documents, batch_size):
         for doc in raw_documents:
             yield self._create_co_occurences_matrix2([doc])
 
-    def _co_occurance_generator_factory(self, raw_documents):
-        return self._co_occurance_generator(raw_documents)
+    def _co_occurance_generator_factory(self, raw_documents, batch_size):
+        return self._co_occurance_generator(raw_documents, batch_size)
 
 
     def _pmi(self, text):
