@@ -15,22 +15,22 @@ class CustomModel(object):
         self.classes = classes
         self.input_shape = input_shape
 
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # self.A1 = tf.placeholder(dtype=tf.float32, shape=[None, self.input_shape, self.input_shape],
         #                          name="adjency_matrix_placeholder")
         self.A1 = tf.compat.v1.sparse_placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape], name="adjency_matrix_placeholder")
-        self.y_placeholder = tf.placeholder(dtype=tf.float32, shape=[self.classes, 1], name="y_placeholder")
+        self.y_placeholder = tf.compat.v1.placeholder(dtype=tf.float32, shape=[self.classes, 1], name="y_placeholder")
         # self.F1 = tf.placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape],
         #                         name="features_matrix_placeholder")
-        self.F1 = tf.placeholder(dtype=tf.float32, shape=[self.input_shape, 1], name="features_matrix_placeholder")
+        self.F1 = tf.compat.v1.placeholder(dtype=tf.float32, shape=[self.input_shape, 1], name="features_matrix_placeholder")
         # self.F1 = tf.compat.v1.sparse_placeholder(dtype=tf.float32, shape=[self.input_shape, self.input_shape],
         #                         name="features_matrix_placeholder")
 
-        self.W1 = tf.Variable(tf.random_normal([self.input_shape, self.input_shape]), trainable=True, name="weights1")
-        self.W2 = tf.Variable(tf.random_normal([self.input_shape, 1]), trainable=True, name="weights2")
-        self.W3 = tf.Variable(tf.random_normal([100, self.input_shape]), trainable=True, name="weights3")
-        self.W4 = tf.Variable(tf.random_normal([self.classes, 100]), trainable=True, name="weights4")
+        self.W1 = tf.Variable(tf.random.normal([self.input_shape, self.input_shape]), trainable=True, name="weights1")
+        self.W2 = tf.Variable(tf.random.normal([self.input_shape, 1]), trainable=True, name="weights2")
+        self.W3 = tf.Variable(tf.random.normal([100, self.input_shape]), trainable=True, name="weights3")
+        self.W4 = tf.Variable(tf.random.normal([self.classes, 100]), trainable=True, name="weights4")
 
         # self.F1_dot_1 = tf.multiply(self.F1, self.A1, name="F1_dot_1")
         # self.F1_dot_1 = tf.einsum('aij,aij->aij', self.A1, self.F1)
@@ -60,11 +60,11 @@ class CustomModel(object):
 
         self.y_clipped = tf.clip_by_value(self.y_pred, 1e-10, 0.9999999, name="y_clipped")
         self.loss = -tf.reduce_mean(
-            tf.reduce_sum(self.y_placeholder * tf.log(self.y_clipped) + (1 - self.y_placeholder) * tf.log(1 - self.y_clipped), axis=1, name="loss"))
+            tf.reduce_sum(self.y_placeholder * tf.math.log(self.y_clipped) + (1 - self.y_placeholder) * tf.math.log(1 - self.y_clipped), axis=1, name="loss"))
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=1e-2, name="optimizer").minimize(self.loss)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1e-2, name="optimizer").minimize(self.loss)
 
-        self.init = tf.global_variables_initializer()
+        self.init = tf.compat.v1.global_variables_initializer()
 
         self.correct_prediction = tf.equal(tf.argmax(self.y_placeholder, 1), tf.argmax(self.y_pred, 1), name="correct_predictions")
         self.accuracy = tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32), name="accuracy")
@@ -86,8 +86,11 @@ class CustomModel(object):
 
     def _predict_iteration(self, sess, A, F):
         # A_hat = self._normalize_adjency_matrix(A)
+        indices, values, shape = convert_sparse_matrix_to_values(A)
         vec = sess.run(["activation3:0"],
-                             feed_dict={"adjency_matrix_placeholder:0": convert_sparse_matrix_to_sparse_tensor(A),
+                             feed_dict={# "adjency_matrix_placeholder/shape:0": shape,
+                                        "adjency_matrix_placeholder/values:0": values,
+                                        "adjency_matrix_placeholder/indices:0": indices,
                                         # "adjency_matrix_placeholder:0": A,
                                         # "features_matrix_placeholder:0": convert_sparse_matrix_to_sparse_tensor(F)
                                         "features_matrix_placeholder:0": F.reshape(-1, 1).todense()
@@ -96,7 +99,7 @@ class CustomModel(object):
         return vec[0].reshape(-1)
 
     def train(self, A, F, y, epochs):
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             sess.run(self.init)
             for epoch in range(epochs):
                 avg_cost = 0
@@ -130,7 +133,7 @@ class CustomModel(object):
             builder.save()
 
     def train_generator(self, factory_adjency, factory_features, docs, y, epochs):
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             sess.run(self.init)
             for epoch in range(epochs):
                 avg_cost = 0
@@ -170,7 +173,7 @@ class CustomModel(object):
             builder.save()
 
     def predict(self, A, F):
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             tf.saved_model.loader.load(sess,
                                        [tag_constants.SERVING],
                                        os.path.join(os.path.abspath(os.getcwd()), 'custom_model'))
@@ -182,10 +185,13 @@ class CustomModel(object):
         return doc_vec
 
     def predict_generator(self, factory_adjency, factory_features, docs):
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             tf.saved_model.loader.load(sess,
                                        [tag_constants.SERVING],
                                        os.path.join(os.path.abspath(os.getcwd()), 'custom_model'))
+
+            # for op in tf.get_default_graph().get_operations():
+            #     print(str(op.name))
 
             doc_vec = []
             counter = 0
@@ -197,163 +203,6 @@ class CustomModel(object):
                 doc_vec.append(self._predict_iteration(sess=sess, A=A, F=F))
                 counter += 1
         return doc_vec
-
-
-def pagerank_train(A, F, y, classes = 5, epochs: int = 2):
-    # A1 = tf.placeholder(tf.float32, shape=[A[0].shape[0], A[0].shape[1]])
-    A1 = tf.compat.v1.sparse.placeholder(dtype=tf.float32, shape=[A[0].shape[0], A[0].shape[1]])
-    y_placeholder = tf.placeholder(tf.float32, shape=[classes, 1])
-    # F1 = tf.compat.v1.sparse.placeholder(dtype=tf.float32, shape=[F.shape[0], F.shape[1]])
-    F1 = tf.placeholder(dtype=tf.float32, shape=[F.shape[0], F.shape[1]])
-
-    W1 = tf.Variable(tf.random_normal([A[0].shape[0], A[0].shape[1]]), trainable=True, name="weights1")
-    W2 = tf.Variable(tf.random_normal([A[0].shape[0], 1]), trainable=True, name="weights2")
-    W3 = tf.Variable(tf.random_normal([100, A[0].shape[0]]), trainable=True, name="weights3")
-    W4 = tf.Variable(tf.random_normal([classes, 100]), trainable=True, name="weights4")
-
-    F1_dot = tf.sparse.sparse_dense_matmul(F1, A1)
-    # F1_dot = tf.multiply(F1, A1)
-    F1_dot = tf.sparse.sparse_dense_matmul(tf.contrib.layers.dense_to_sparse(F1_dot), W1)
-    # activation1 = tf.nn.elu(F1_dot, name="relu1")
-
-    # F2_dot = tf.sparse.sparse_dense_matmul(tf.contrib.layers.dense_to_sparse(activation1), A1)
-    # F2_dot = tf.sparse.sparse_dense_matmul(tf.contrib.layers.dense_to_sparse(F1_dot), W2)
-    F2_dot = tf.multiply(F1_dot, A1)
-    F2_dot = tf.matmul(F2_dot, W2)
-    # activation2 = tf.nn.elu(F2_dot, name="relu2")
-
-    F3_dot = tf.matmul(W3, F2_dot)
-    activation3 = tf.nn.elu(F3_dot, name="relu3")
-
-    F4_dot = tf.matmul(W4, activation3)
-    activation4 = tf.nn.elu(F4_dot, name="relu4")
-
-    y_pred = tf.nn.softmax(activation4, axis=0)
-
-    y_clipped = tf.clip_by_value(y_pred, 1e-10, 0.9999999)
-    # cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_placeholder, logits=y_clipped)
-    # loss = tf.losses.softmax_cross_entropy(y_placeholder, F4_dot)
-    loss = -tf.reduce_mean(tf.reduce_sum(y_placeholder * tf.log(y_clipped) + (1 - y_placeholder) * tf.log(1 - y_clipped), axis=1))
-
-    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_placeholder, logits=F4_dot))
-
-    optimiser = tf.train.AdamOptimizer(learning_rate=1e-1).minimize(loss)
-
-    init = tf.global_variables_initializer()
-
-    correct_prediction = tf.equal(tf.argmax(y_placeholder, 1), tf.argmax(y_pred, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-    def one_hot(a, num_classes):
-        return np.squeeze(np.eye(num_classes)[a.reshape(-1)])
-
-    def train(A, F, y):
-        # create self co-ocurance in adjecency matrix
-        I = np.eye(A.shape[0], dtype=float)
-        A_hat = A + I
-
-        # calculate degree of each vertex
-        D = np.sum(A_hat, axis=1)
-
-        # create diagonal matrix with inversed vertex degree as values
-        for d in range(0, D.shape[0]):
-            if D[d]:
-                D[d] = 1.0 / D[d]
-
-        A_hat = np.multiply(A_hat, D)
-        _, c = sess.run([optimiser, loss],
-                             feed_dict={A1: A_hat,
-                                        F1: F.todense(),
-                                        y_placeholder: y
-                                        })
-        print(sess.run(accuracy, feed_dict={A1: A_hat, F1: F.todense()}))
-        return c
-
-    def predict(A, F):
-        # create self co-ocurance in adjecency matrix
-        I = np.eye(A.shape[0], dtype=float)
-        A_hat = A + I
-
-        # calculate degree of each vertex
-        D = np.sum(A_hat, axis=1)
-
-        # create diagonal matrix with inversed vertex degree as values
-        for d in range(0, D.shape[0]):
-            if D[d]:
-                D[d] = 1.0 / D[d]
-
-        A_hat = np.multiply(A_hat, D)
-        vec = sess.run([activation4],
-                             feed_dict={A1: A_hat,
-                                        F1: F.todense()
-                                        })
-        return vec
-
-    with tf.compat.v1.Session() as sess:
-        sess.run(init)
-        for epoch in range(epochs):
-            avg_cost = 0
-            for i in range(len(A)):
-                print("Iteration: {}/{}".format(i + 1, str(len(A))), end='\r', flush=True)
-
-                cost = train(A[i], F, one_hot(y.to_numpy()[i], classes).reshape(classes, 1))
-
-                avg_cost += cost / len(A)
-            print("Epoch:", (epoch + 1), "cost =", "{:.3f}".format(avg_cost))
-
-        doc_vec = []
-        for i in range(len(A)):
-            doc_vec.append(predict(A[i], F))
-        return doc_vec
-
-    # A1 = tf.placeholder(tf.float32, shape=[A_hat.shape[0], A_hat.shape[1]])
-    # F1 = tf.placeholder(tf.float32, shape=[F.shape[0], F.shape[1]])
-    #
-    # A1_F1_dot = tf.math.multiply(A1, F1)
-    #
-    # init = tf.global_variables_initializer()
-    #
-    # with tf.Session() as sess:
-    #     sess.run(init)
-    #     F_new = sess.run(A1_F1_dot, feed_dict={A1: A_hat, F1: F})
-    #     for i in range(num_iterations):
-    #         print("Iteration: {}/{}".format(i + 1, num_iterations), end='\r', flush=True)
-    #         F_new = sess.run(A1_F1_dot, feed_dict={A1: A_hat, F1: F_new})
-    #     return F_new
-
-    # return output
-    # A_sparse = sparse.csr_matrix(A)
-    # D_hat_sparse = sparse.csr_matrix(D_hat)
-    # A_hat_sparse = (A_sparse.T / D_hat_sparse).T
-
-    doc_vec = []
-    for j in range(0, len(A)):
-        print("Iteration: {}/{}".format(j + 1, len(A)), end='\r', flush=True)
-
-        I = np.eye(A[j].shape[0], dtype=float)
-        A_hat = A[j] + I
-
-        # D_hat = np.zeros((A_hat.shape[0]), dtype=float)
-        D = np.sum(A_hat, axis=1)
-
-        # create inversed diagonal matrix with vertex degree as values
-        for d in range(0, D.shape[0]):
-            if D[d]:
-                D[d] = 1.0 / D[d]
-
-        # A_hat = np.asmatrix(np.dual.inv(D_hat)) * A_hat
-        A_hat = A_hat * D.reshape(-1, 1)
-
-        # A_hat = (A_hat.T / D_hat).T
-        # A_hat_sparse = sparse.csr_matrix(A_hat)
-        # v_sparse = sparse.csr_matrix(F)
-        for i in range(num_iterations):
-            # print("Iteration: {}/{}".format(i+1, num_iterations), end='\r', flush=True)
-            # v = np.multiply(A_hat, v)
-            # A_hat = relu(F.multiply(A_hat))
-            A_hat = F.multiply(A_hat)
-        doc_vec.append(np.ravel(A_hat.todense().sum(axis=0)))
-    return doc_vec
 
 
 def pmi(text, window=2):
@@ -401,4 +250,10 @@ def pmi(text, window=2):
 def convert_sparse_matrix_to_sparse_tensor(X):
     coo = X.tocoo()
     indices = np.mat([coo.row, coo.col]).transpose()
-    return tf.SparseTensorValue(indices, coo.data, coo.shape)
+    return tf.compat.v1.SparseTensorValue(indices, coo.data, coo.shape)
+
+
+def convert_sparse_matrix_to_values(X):
+    coo = X.tocoo()
+    indices = np.mat([coo.row, coo.col]).transpose()
+    return indices, coo.data, coo.shape
