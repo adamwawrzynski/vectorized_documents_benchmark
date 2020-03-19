@@ -150,8 +150,13 @@ class CustomTfidfVectorizer(CountVectorizer):
         self.custom_model = CustomModel(len(self.unigram_vectorizer.vocabulary_), len(np.unique(y)))
         # self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, self.pmi_matrix, y, 5)
 
-        self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, result, y, 5)
-
+        # self.custom_model.train_generator(self._co_occurance_generator_factory, raw_documents, result, y, 5)
+        self.custom_model.train_generator(
+            self._co_occurance_generator_factory,
+            self._features_generator_factory,
+            raw_documents,
+            y,
+            5)
         return self
 
     def fit_transform(self, raw_documents, y=None):
@@ -181,7 +186,9 @@ class CustomTfidfVectorizer(CountVectorizer):
 
         # return self.custom_model.predict(data_matrix, self.pmi_matrix)
         # return self.custom_model.predict_generator(self._co_occurance_generator_factory, raw_documents, self.pmi_matrix)
-        return self.custom_model.predict_generator(self._co_occurance_generator_factory, raw_documents, result)
+        # return self.custom_model.predict_generator(self._co_occurance_generator_factory, raw_documents, result)
+        return self.custom_model.predict_generator(self._co_occurance_generator_factory, self._features_generator_factory,
+                                               raw_documents)
 
     def _create_co_occurences_matrix2(self, documents):
         # bigrams = self.bigram_vectorizer.transform(documents)
@@ -197,6 +204,13 @@ class CustomTfidfVectorizer(CountVectorizer):
 
     def _co_occurance_generator_factory(self, raw_documents):
         return self._co_occurance_generator(raw_documents)
+
+    def _features_generator(self, raw_documents):
+        for doc in raw_documents:
+            yield self._tfidf.transform(super(CustomTfidfVectorizer, self).transform([doc]), copy=False)
+
+    def _features_generator_factory(self, raw_documents):
+        return self._features_generator(raw_documents)
 
 
     def _pmi(self, text):
