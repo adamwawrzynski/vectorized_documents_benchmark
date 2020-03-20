@@ -28,7 +28,7 @@ import numpy as np
 from sklearn.utils.validation import check_is_fitted, FLOAT_DTYPES
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
-vocabulary_size = 20000
+vocabulary_size = None
 
 
 class CustomTfidfVectorizer(CountVectorizer):

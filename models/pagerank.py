@@ -154,6 +154,8 @@ class CustomModel(object):
                     counter += 1
                 avg_cost /= counter
                 print("Epoch:", (epoch + 1), "cost =", "{:.3f}".format(avg_cost))
+                if avg_cost < 0.01:
+                    break
 
             inputs = {
                 "adjency_matrix_placeholder": self.A1,
