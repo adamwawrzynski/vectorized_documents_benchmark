@@ -38,7 +38,7 @@ class PSIF(object):
             embedding_size=100,
             num_clusters=40
     ):
-        self.embedding_model = KeyedVectors.load_word2vec_format('glove/glove.6B.100d.txt.word2vec')
+        self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path + '.word2vec')
         self.embedding_size = embedding_size
         self.num_clusters = num_clusters
 
