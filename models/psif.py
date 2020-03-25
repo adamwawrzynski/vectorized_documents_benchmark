@@ -93,7 +93,7 @@ class PSIF(object):
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
         self.n_comp = self.embedding_size * self.num_clusters
 
-        for review in X:
+        for counter, review in enumerate(X):
             words = preprocess_text(review)
             gwbowv[counter] = self._create_cluster_vector_and_gwbowv(words)
 
@@ -105,7 +105,7 @@ class PSIF(object):
         # gwbowv is a matrix which contains normalised document vectors.
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
 
-        for review in X:
+        for counter, review in enumerate(X):
             words = preprocess_text(review)
             gwbowv[counter] = self._create_cluster_vector_and_gwbowv(words)
 
