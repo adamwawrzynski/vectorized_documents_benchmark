@@ -91,15 +91,11 @@ class PSIF(object):
 
         # gwbowv is a matrix which contains normalised document vectors.
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
-        counter = 0
         self.n_comp = self.embedding_size * self.num_clusters
 
         for review in X:
             words = preprocess_text(review)
             gwbowv[counter] = self._create_cluster_vector_and_gwbowv(words)
-            counter += 1
-            if counter % 1000 == 0:
-                print("Train News Covered : ", counter)
 
         # principal component removal
         self._pca_truncated_svd_fit(gwbowv, self.embedding_size)
@@ -108,14 +104,10 @@ class PSIF(object):
     def transform(self, X, y=None):
         # gwbowv is a matrix which contains normalised document vectors.
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
-        counter = 0
 
         for review in X:
             words = preprocess_text(review)
             gwbowv[counter] = self._create_cluster_vector_and_gwbowv(words)
-            counter += 1
-            if counter % 1000 == 0:
-                print("Train News Covered : ", counter)
 
         return self._pca_truncated_svd_transform(gwbowv), y
 
@@ -132,16 +124,13 @@ class PSIF(object):
         # Get probabilities of cluster assignments.
         # Dump cluster assignments and probability of cluster assignments.
         joblib.dump(self.idx, 'ksvd_latestclusmodel_len2alldata.pkl')
-        print("Cluster Assignments Saved...")
 
         joblib.dump(self.idx_proba, 'ksvd_prob_latestclusmodel_len2alldata.pkl')
-        print("Probabilities of Cluster Assignments Saved...")
 
     def _dictionary_read_KSVD(self, idx_name, idx_proba_name):
         # Loads cluster assignments and probability of cluster assignments.
         self.idx = joblib.load(idx_name)
         self.idx_proba = joblib.load(idx_proba_name)
-        print("Cluster Model Loaded...")
 
 
     def _get_probability_word_vectors(self):
