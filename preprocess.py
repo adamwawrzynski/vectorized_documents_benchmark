@@ -75,6 +75,14 @@ def process_string(
     return ' '.join(processed_dataset)
 
 
+def process_dataset_2(
+        dataset,
+        remove_stopwords=False,
+        lemmatize=False
+):
+    return dataset.map(lambda x: ' '.join(preprocess_text(x, remove_stopwords, lemmatize)))
+
+
 def process_dataset(
         dataset,
         remove_stopwords=False,

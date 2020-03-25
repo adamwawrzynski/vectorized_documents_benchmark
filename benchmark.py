@@ -14,6 +14,7 @@ from models.lda_model import LDAModel
 from models.lsa_model import LSAModel
 from models.han_model import HANModel
 from models.sif_model import SIFModel
+from models.psif_model import PSIFModel
 from models.bow_model import BOWModel
 
 import logging
@@ -187,6 +188,11 @@ sif = SIFModel(
     pretrained_embedded_vector_path = args.pretrained_path,
     embedding_size=100)
 
+psif = PSIFModel(
+    pretrained_embedded_vector_path = args.pretrained_path,
+    embedding_size=100,
+    num_clusters=40)
+
 lda = LDAModel(
     n_components=100,
     max_features=None,
@@ -212,7 +218,7 @@ bow = BOWModel(
     max_df=0.95,
     min_df=0)
 
-benchmark_models = [bow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
+benchmark_models = [bow, tfidf, lsa, lda, sif, psif, doc2vecdm, doc2veccbow, han]
 
 validator(
     benchmark_models,
