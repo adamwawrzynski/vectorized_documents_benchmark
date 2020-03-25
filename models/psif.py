@@ -43,6 +43,9 @@ class PSIF(object):
         self.num_clusters = num_clusters
 
     def fit(self, X, y=None):
+        t0 = time.time()
+        logging.info("Building vectorizer " + self.__class__.__name__)
+
         train_x = process_dataset_2(pd.Series(X))
         self.vec = CountVectorizer()
         self.vec.fit(train_x)
@@ -99,6 +102,10 @@ class PSIF(object):
 
         # principal component removal
         self._pca_truncated_svd_fit(gwbowv, self.embedding_size)
+
+        elapsed = (time.time() - t0)
+        logging.info("Done in %.3fsec" % elapsed)
+
         return self
 
     def transform(self, X, y=None):
