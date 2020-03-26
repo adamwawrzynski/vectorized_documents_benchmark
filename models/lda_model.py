@@ -5,7 +5,7 @@ import os
 from models.benchmark_model import BenchmarkModel
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
-from preprocess import process_dataset
+from utils.preprocess import process_dataset
 
 
 class LDAModel(BenchmarkModel):

@@ -3,11 +3,11 @@ import numpy as np
 import time
 from sklearn.model_selection import KFold
 
-from load_dataset import load_bbc_dataset
-from load_dataset import load_news_groups_dataset
-from load_dataset import load_yahoo_answers_dataset
-from load_dataset import load_ohsumed_dataset
-from load_dataset import load_reuters_dataset
+from utils.load_dataset import load_bbc_dataset
+from utils.load_dataset import load_news_groups_dataset
+from utils.load_dataset import load_yahoo_answers_dataset
+from utils.load_dataset import load_ohsumed_dataset
+from utils.load_dataset import load_reuters_dataset
 from models.tfidf_model import TfIdfModel
 from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
 from models.lda_model import LDAModel

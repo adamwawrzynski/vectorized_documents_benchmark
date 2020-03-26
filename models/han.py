@@ -11,7 +11,7 @@ from models.attention_with_context import AttentionWithContext
 import os
 import logging
 from sklearn import metrics
-from preprocess import clean_string
+from utils.preprocess import clean_string
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
