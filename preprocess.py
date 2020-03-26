@@ -38,3 +38,16 @@ def process_dataset(
     lemmatize=False
 ):
     return dataset.map(lambda x: preprocess_text(x, remove_stopwords,lemmatize))
+
+def process_string(
+        dataset
+):
+    processed_dataset = preprocess_text(dataset)
+    return ' '.join(processed_dataset)
+
+def process_dataset_2(
+    dataset,
+    remove_stopwords=False,
+    lemmatize=False
+):
+    return dataset.map(lambda x: ' '.join(preprocess_text(x, remove_stopwords,lemmatize)))
