@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from preprocess import process_dataset
 
 
-class CBOWModel(BenchmarkModel):
+class BOWModel(BenchmarkModel):
     def __init__(
         self,
         max_features,
