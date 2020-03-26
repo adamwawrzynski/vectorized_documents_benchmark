@@ -1,34 +1,18 @@
-import itertools
+import logging
 import logging
 import os
-from collections import Counter
+import time
 
+import numpy as np
+import pandas as pd
 from gensim.models import KeyedVectors
 from gensim.scripts.glove2word2vec import glove2word2vec
-
-from preprocess import clean_string
-from preprocess import preprocess_text, process_dataset, process_dataset_2, process_string
-
-import warnings, random
-import pandas as pd
-import time,pickle, pdb
-from nltk.corpus import stopwords
-import numpy as np
-from numpy import float32
-import math
-from sklearn.model_selection import GridSearchCV,train_test_split
-from sklearn.ensemble import RandomForestClassifier
-import sys
+from sklearn.decomposition import PCA
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.svm import SVC, LinearSVC
-import pickle
-from sklearn.metrics import classification_report
-from sklearn.mixture import GaussianMixture
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import label_binarize
+
 from models.ApproximateKSVD import ApproximateKSVD
-from sklearn.decomposition import PCA
+from preprocess import preprocess_text, process_dataset_2
 
 
 class PSIF(object):

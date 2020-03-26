@@ -3,9 +3,6 @@ import pickle
 import os
 from models.benchmark_model import BenchmarkModel
 from models.psif import PSIF
-
-from sklearn.pipeline import Pipeline
-from sklearn.base import TransformerMixin, BaseEstimator
 import time
 
 
