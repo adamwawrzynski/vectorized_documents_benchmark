@@ -15,6 +15,7 @@ from models.lsa_model import LSAModel
 from models.han_model import HANModel
 from models.sif_model import SIFModel
 from models.cbow_model import CBOWModel
+from models.psif_model import PSIFModel
 
 import logging
 import multiprocessing
@@ -183,6 +184,11 @@ doc2veccbow = Doc2VecDBOWModel(
     workers=cores,
     min_count=1)
 
+psif = PSIFModel(
+    pretrained_embedded_vector_path=args.pretrained_path,
+    embedding_size=100,
+    num_clusters=40)
+
 sif = SIFModel(
     text = x_train['text'],
     labels = y_train['target'],
@@ -214,7 +220,7 @@ cbow = CBOWModel(
     max_df=0.95,
     min_df=1)
 
-benchmark_models = [cbow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
+benchmark_models = [cbow, tfidf, lsa, lda, sif, psif, doc2vecdm, doc2veccbow, han]
 
 validator(
     benchmark_models, 
