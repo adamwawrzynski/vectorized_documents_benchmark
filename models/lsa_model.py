@@ -5,7 +5,7 @@ import os
 from models.benchmark_model import BenchmarkModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
-from preprocess import process_dataset
+from utils.preprocess import process_dataset
 
 
 class LSAModel(BenchmarkModel):

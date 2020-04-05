@@ -15,7 +15,7 @@ from nltk import tokenize
 from sklearn import metrics
 
 from models.attention_with_context import AttentionWithContext
-from preprocess import clean_string
+from utils.preprocess import clean_string
 
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch

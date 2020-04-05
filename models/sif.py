@@ -10,8 +10,8 @@ from gensim.models import KeyedVectors
 from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.decomposition import PCA
 
-from preprocess import clean_string
-from preprocess import preprocess_text
+from utils.preprocess import clean_string
+from utils.preprocess import preprocess_text
 
 
 # Implementation based on: https://github.com/peter3125/sentence2vec

@@ -2,7 +2,7 @@ import logging
 import time
 from models.benchmark_model import BenchmarkModel
 from abc import abstractmethod
-from preprocess import process_dataset
+from utils.preprocess import process_dataset
 from gensim.models.doc2vec import Doc2Vec
 from gensim.models.doc2vec import TaggedDocument
 

@@ -1,5 +1,4 @@
 import logging
-import logging
 import os
 import time
 
@@ -12,7 +11,7 @@ from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 from models.ApproximateKSVD import ApproximateKSVD
-from preprocess import preprocess_text, process_dataset_2
+from utils.preprocess import preprocess_text, process_dataset_2
 
 
 class PSIF(object):
