@@ -2,22 +2,20 @@ import argparse
 import numpy as np
 import time
 from sklearn.model_selection import KFold
-from sklearn.metrics import classification_report
 
-from utils.load_dataset import load_bbc_dataset
-from utils.load_dataset import load_news_groups_dataset
-from utils.load_dataset import load_yahoo_answers_dataset
-from utils.load_dataset import load_ohsumed_dataset
-from utils.load_dataset import load_reuters_dataset
+from load_dataset import load_bbc_dataset
+from load_dataset import load_news_groups_dataset
+from load_dataset import load_yahoo_answers_dataset
+from load_dataset import load_ohsumed_dataset
+from load_dataset import load_reuters_dataset
+from models.TfNtfModel import TfNtfModel
 from models.tfidf_model import TfIdfModel
 from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
 from models.lda_model import LDAModel
 from models.lsa_model import LSAModel
 from models.han_model import HANModel
-from models.han_model2 import HAN2Model
 from models.sif_model import SIFModel
 from models.bow_model import BOWModel
-from models.psif_model import PSIFModel
 
 import logging
 import multiprocessing
@@ -40,11 +38,9 @@ def cross_validation(
         for train_text, train_target in cv.split(x_train, y_train):
             model.build_model()
             t0 = time.time()
-            model.train(x_train[train_text], y_train[train_text])
-            trainig_times.append((time.time() - t0))
             model.fit(x_train[train_text], y_train[train_text])
+            trainig_times.append((time.time() - t0))
             scores.append(model.evaluate(x_train[train_target], y_train[train_target]))
-            logging.info(classification_report(y_train[train_target], model.predict(x_train[train_target])))
 
         logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
         logging.info(model.__class__.__name__ + ": training time std: " + str(np.std(np.array(trainig_times))))
@@ -66,11 +62,9 @@ def train_test_validator(
         for step in range(epochs):
             model.build_model()
             t0 = time.time()
-            model.train(x_train, y_train)
-            trainig_times.append(time.time() - t0)
             model.fit(x_train, y_train)
+            trainig_times.append(time.time() - t0)
             scores.append(model.evaluate(x_test, y_test))
-            logging.info(classification_report(y_test, model.predict(x_test)))
 
         logging.info(model.__class__.__name__ + ": average training time: " + str(np.average(np.array(trainig_times))))
         logging.info(model.__class__.__name__ + ": training time std: " + str(np.std(np.array(trainig_times))))
@@ -159,119 +153,74 @@ elif args.dataset_name == "ohsumed":
     validator = train_test_validator
 
 x_train, x_test, y_train, y_test = load_dataset(args.dataset_path)
+#
+# han = HANModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     num_categories = num_categories,
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     max_features = 200000,
+#     max_senten_len = 100,
+#     max_senten_num = 30,
+#     embedding_size = 100,
+#     validation_split=0.2,
+#     verbose=1,
+#     batch_size=8,
+#     epochs=10)
+#
+# doc2vecdm = Doc2VecDMModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
+#
+# doc2veccbow = Doc2VecDBOWModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
+#
+# sif = SIFModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     embedding_size=100)
+#
+# lda = LDAModel(
+#     n_components=100,
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=0,
+#     epochs=10,
+#     cores=cores)
+#
+# lsa = LSAModel(
+#     svd_features=100,
+#     n_features=None,
+#     n_iter=10,
+#     max_df=0.95,
+#     min_df=0)
+#
+# tfidf = TfIdfModel(
+#     n_features=None,
+#     max_df=0.95,
+#     min_df=0)
+#
+# bow = BOWModel(
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=0)
+#
+# benchmark_models = [bow, tfidf, lsa, lda, sif, doc2vecdm, doc2veccbow, han]
 
-han2 = HAN2Model(
-    text = x_train['text'],
-    labels = y_train['target'],
-    num_categories = num_categories,
-    pretrained_embedded_vector_path = args.pretrained_path,
-    max_features = 5000000,
-    max_senten_len = 320,
-    max_senten_num = 50,
-    embedding_size = 100,
-    validation_split=0.1,
-    verbose=1,
-    batch_size=4,
-    epochs=100)
-
-han = HANModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    num_categories = num_categories,
-    pretrained_embedded_vector_path = args.pretrained_path,
-    max_features = 5000000,
-    max_senten_len = 320,
-    max_senten_num = 50,
-    embedding_size = 100,
-    validation_split=0.1,
-    verbose=1,
-    batch_size=4,
-    epochs=100)
-
-doc2vecdm = Doc2VecDMModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-doc2veccbow = Doc2VecDBOWModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-psif = PSIFModel(
-    pretrained_embedded_vector_path=args.pretrained_path,
-    embedding_size=100,
-    num_clusters=40)
-
-sif = SIFModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    pretrained_embedded_vector_path = args.pretrained_path,
-    embedding_size=100)
-
-lda = LDAModel(
-    n_components=100,
-    max_features=None,
-    max_df=0.95,
-    min_df=1,
-    epochs=10,
-    cores=cores)
-
-lsa = LSAModel(
-    svd_features=100,
-    n_features=None,
-    n_iter=10,
-    max_df=0.95,
-    min_df=1)
-
-tfidf = TfIdfModel(
-    n_features=None,
-    max_df=0.95,
-    min_df=1)
-
-bow = BOWModel(
-    max_features=None,
-    max_df=0.95,
-    min_df=1)
-
-# benchmark_models = [bow, tfidf, lsa, lda, sif, psif, doc2vecdm, doc2veccbow, han]
-benchmark_models = [han2]
+custom_tfidf = TfNtfModel()
+benchmark_models = [custom_tfidf]
 
 validator(
     benchmark_models,
     x_train['text'],
     y_train['target'],
-    x_train['text'],
-    y_train['target'])
-
-
-#from nltk import tokenize
-#from keras.preprocessing.text import Tokenizer, text_to_word_sequence
-#from utils.preprocess import clean_string
-#from collections import Counter
-
-#texts = []
-#sentences = []
-#paras = []
-#list_of_senten_num = []
-#list_of_senten_len = []
-#for sentence in x_train['text']:
-#    text = clean_string(sentence)
-##    print([text])
-##    texts.append(text)
-#    sentences = tokenize.sent_tokenize(text)
-##    print([sentences])
-##    paras.append(sentences)
-#    list_of_senten_num.append(len(sentences))
-#    for s in sentences:
-#        list_of_senten_len.append(len(s))
-
-#print("Histogram of senten_num")
-#print(Counter(list_of_senten_num))
-
-#print("Histogram of senten_len")
-#print(Counter(list_of_senten_len))
+    x_test['text'],
+    y_test['target'])

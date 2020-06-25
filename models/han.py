@@ -77,6 +77,7 @@ class HAN(object):
         num_categories=None
     ):
         try:
+            self.fitted = False
             self.text = pd.Series(text)
             self.categories = pd.Series(labels)
             self.classes = self.categories.unique().tolist()
@@ -154,7 +155,9 @@ class HAN(object):
             texts.append(text)
             sentences = tokenize.sent_tokenize(text)
             paras.append(sentences)
-        self.tokenizer.fit_on_texts(texts)
+        if not self.fitted:
+            self.tokenizer.fit_on_texts(texts)
+            self.fitted = True
         return self.processed_data(texts, pd.Series(labels), paras)
 
     def split_dataset(
@@ -229,7 +232,8 @@ class HAN(object):
         """
         Returns Embedding matrix
         """
-        embedding_matrix = np.random.random((self.max_features, self.embed_size))
+        # embedding_matrix = np.random.random((self.max_features, self.embed_size))
+        embedding_matrix = np.random.random((len(self.tokenizer.word_index), self.embed_size))
         absent_words = 0
         for word, i in self.tokenizer.word_index.items():
             embedding_vector = self.embedding_index.get(word)
@@ -251,7 +255,8 @@ class HAN(object):
         """
         embedding_matrix = self.get_embedding_matrix()
         return Embedding(
-            self.max_features,
+            #self.max_features,
+            len(self.tokenizer.word_index),
             self.embed_size,
             weights=[embedding_matrix],
             input_length=self.max_senten_len,
@@ -322,10 +327,10 @@ class HAN(object):
         self.model.summary()
         self.model.compile(
             loss=self.hyperparameters['loss'], optimizer=self.hyperparameters['optimizer'], metrics=self.hyperparameters['metrics'])
-        
+
     def train(
         self,
-        epochs, 
+        epochs,
         batch_size
     ):
         """Training the model
@@ -333,7 +338,7 @@ class HAN(object):
         batch_size -- size of a batch
         """
         checkpoint = ModelCheckpoint(
-            "han_best_model.weights",
+            "han_best_model3.weights",
             verbose=0,
             monitor='val_loss',
             save_best_only=True,
@@ -341,7 +346,7 @@ class HAN(object):
             mode='auto')
         earlystop = EarlyStopping(
             monitor='val_loss',
-            patience=3)
+            patience=5)
         self.model.fit(
             self.x_train,
             self.y_train,
@@ -354,7 +359,7 @@ class HAN(object):
 
     def evaluate(
         self,
-        dataset, 
+        dataset,
         y_dataset
     ):
         self.text = pd.Series(dataset)
@@ -362,7 +367,7 @@ class HAN(object):
         self.classes = self.categories.unique().tolist()
         data, _ = self.preprocessing(self.text, y_dataset)
 
-        self.model.load_weights("han_best_model.weights")
+        self.model.load_weights("han_best_model3.weights")
         y_pred = self.model.predict(data)
         result = metrics.accuracy_score(y_dataset, y_pred)
         logging.info("Accuracy: %.3f" % result)
