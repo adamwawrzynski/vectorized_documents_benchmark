@@ -1,7 +1,7 @@
 from keras.engine.topology import Layer
 from keras import initializers as initializers, regularizers, constraints
 from keras.engine.topology import Layer
-
+import tf.keras.backend as K
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
