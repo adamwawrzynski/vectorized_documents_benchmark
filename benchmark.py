@@ -23,6 +23,9 @@ import logging
 import multiprocessing
 cores = multiprocessing.cpu_count() - 1
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 
 def cross_validation(
     benchmark_models,
@@ -167,11 +170,11 @@ han2 = HAN2Model(
     pretrained_embedded_vector_path = args.pretrained_path,
     max_features = 5000000,
     max_senten_len = 320,
-    max_senten_num = 50,
+    max_senten_num = 115,
     embedding_size = 100,
     validation_split=0.1,
     verbose=1,
-    batch_size=4,
+    batch_size=16,
     epochs=100)
 
 han = HANModel(
@@ -181,11 +184,11 @@ han = HANModel(
     pretrained_embedded_vector_path = args.pretrained_path,
     max_features = 5000000,
     max_senten_len = 320,
-    max_senten_num = 50,
+    max_senten_num = 115,
     embedding_size = 100,
     validation_split=0.1,
     verbose=1,
-    batch_size=4,
+    batch_size=16,
     epochs=100)
 
 doc2vecdm = Doc2VecDMModel(

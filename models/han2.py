@@ -13,6 +13,7 @@ import logging
 from sklearn import metrics
 from utils.preprocess import clean_string, preprocess_text
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from keras.utils import multi_gpu_model
 
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
@@ -70,8 +71,8 @@ class HAN2(object):
             'loss': 'categorical_crossentropy'
         }
         self.embedding_index = self.add_glove_model()
-        # self.vectorizer = CountVectorizer(max_features=self.max_features)
-        self.vectorizer = TfidfVectorizer(use_idf=True, max_features=None)
+        self.vectorizer = CountVectorizer(max_features=None)
+#        self.vectorizer = TfidfVectorizer(use_idf=False, max_features=None)
         self.build_model(text, labels, num_categories)
 
     def build_model(
@@ -342,9 +343,9 @@ class HAN2(object):
         # sent_tf = Multiply()([sent_input, tf])
 
         sent_encoder = TimeDistributed(self.wordEncoder)(sent_input)
-#        sent_concat = Concatenate()([sent_encoder, tf])
-#        sent_dense = Dense(self.max_senten_len)(sent_encoder)
-        sent_mul = Multiply()([sent_encoder, tf])
+        sent_concat = Concatenate()([sent_encoder, tf])
+        sent_dense = Dense(self.max_senten_len)(sent_concat)
+#        sent_mul = Multiply()([sent_encoder, tf])
 #        sent_add = Add()([sent_encoder, tf])
         # sent_act = Activation('relu')(sent_mul)
         # sent_norm = BatchNormalization()(sent_mul)
@@ -354,7 +355,7 @@ class HAN2(object):
                     return_sequences=True,
                     kernel_regularizer=kernel_regularizer,
                     recurrent_dropout=0.2)
-                )(sent_mul)
+                )(sent_dense)
         sent_dense = TimeDistributed(
             Dense(
                 self.embed_size,
@@ -382,6 +383,8 @@ class HAN2(object):
             activation=self.hyperparameters['activation'])(sent_att)
         self.model = Model([input_tf, sent_input], preds)
 
+#        self.model = multi_gpu_model(self.model, gpus=4)
+
         self.wordEncoder.summary()
         self.model.summary()
         self.model.compile(
@@ -397,7 +400,7 @@ class HAN2(object):
         batch_size -- size of a batch
         """
         checkpoint = ModelCheckpoint(
-            "han2_best_model13.weights",
+            "han2_best_model0.weights",
             verbose=0,
             monitor='val_loss',
             save_best_only=True,
@@ -427,7 +430,7 @@ class HAN2(object):
         self.classes = self.categories.unique().tolist()
         data, _ = self.preprocessing(self.text, y_dataset)
 
-        self.model.load_weights("han2_best_model13.weights")
+        self.model.load_weights("han2_best_model0.weights")
         y_pred = self.model.predict(data)
         result = metrics.accuracy_score(y_dataset, y_pred)
         logging.info("Accuracy: %.3f" % result)
