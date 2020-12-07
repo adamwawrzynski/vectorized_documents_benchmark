@@ -9,6 +9,8 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.decomposition import PCA
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+import fasttext
+import fasttext.util
 
 from models.ApproximateKSVD import ApproximateKSVD
 from utils.preprocess import preprocess_text, process_dataset_2
@@ -21,13 +23,16 @@ class PSIF(object):
             embedding_size=100,
             num_clusters=40
     ):
-        if not os.path.isfile(pretrained_embedded_vector_path) or not ".word2vec" in pretrained_embedded_vector_path:
-            glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
-        if ".word2vec" in pretrained_embedded_vector_path:
-            self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path)
-        else:
-            self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        fasttext.util.download_model('en', if_exists='ignore')
+        # if not os.path.isfile(pretrained_embedded_vector_path) or not ".word2vec" in pretrained_embedded_vector_path:
+        #     glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
+        # if ".word2vec" in pretrained_embedded_vector_path:
+        #     self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path)
+        # else:
+        #     self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        self.embedding_model = fasttext.load_model(pretrained_embedded_vector_path + '.bin')
         self.embedding_size = embedding_size
+        # fasttext.util.reduce_model(self.embedding_model, self.embedding_size)
         self.num_clusters = num_clusters
 
     def fit(self, X, y=None):
@@ -42,10 +47,15 @@ class PSIF(object):
 
         self.word_vectors = []
         for word in self.keys:
-            if word in self.embedding_model.wv:
+            # if word in self.embedding_model.wv:
+            #     self.word_vectors.append(self.embedding_model[word])
+            # else:
+            #     self.word_vectors.append(np.zeros(self.embedding_size))
+            if word in self.embedding_model:
                 self.word_vectors.append(self.embedding_model[word])
             else:
                 self.word_vectors.append(np.zeros(self.embedding_size))
+            # self.word_vectors.append(self.embedding_model[word])
 
         self.word_vectors = np.array(self.word_vectors)
 
@@ -81,7 +91,9 @@ class PSIF(object):
         self._get_probability_word_vectors()
 
         # gwbowv is a matrix which contains normalised document vectors.
+        # gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_model.get_dimension())), dtype="float32")
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
+        # self.n_comp = self.embedding_model.get_dimension() * self.num_clusters
         self.n_comp = self.embedding_size * self.num_clusters
 
         for counter, review in enumerate(X):
@@ -98,6 +110,7 @@ class PSIF(object):
 
     def transform(self, X, y=None):
         # gwbowv is a matrix which contains normalised document vectors.
+        # gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_model.get_dimension())), dtype="float32")
         gwbowv = np.zeros((len(X), self.num_clusters * (self.embedding_size)), dtype="float32")
 
         for counter, review in enumerate(X):

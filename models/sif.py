@@ -9,6 +9,8 @@ import pandas as pd
 from gensim.models import KeyedVectors
 from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.decomposition import PCA
+import fasttext
+import fasttext.util
 
 from utils.preprocess import clean_string
 from utils.preprocess import preprocess_text
@@ -25,11 +27,14 @@ class SIF(object):
         pretrained_embedded_vector_path,
         embedding_size
     ):
-        self.embed_size = embedding_size
+        fasttext.util.download_model('en', if_exists='ignore')
         self.embedded_dir = pretrained_embedded_vector_path
-        if not os.path.isfile(pretrained_embedded_vector_path+".word2vec"):
-            glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
-        self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        # if not os.path.isfile(pretrained_embedded_vector_path+".word2vec"):
+        #     glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
+        # self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        self.embedding_model = fasttext.load_model(pretrained_embedded_vector_path + '.bin')
+        self.embedding_size = embedding_size
+        # fasttext.util.reduce_model(self.embedding_model, self.embedding_size)
         self.text = pd.Series(text)
         self.categories = pd.Series(labels)
         self.classes = self.categories.unique().tolist()
@@ -46,7 +51,7 @@ class SIF(object):
     ):
         sentence_set = []
         for sentence in sentence_list:
-            vs = np.zeros(embedding_size)  # add all word2vec values into one vector for the sentence
+            vs = np.zeros(self.embedding_model.get_dimension())  # add all word2vec values into one vector for the sentence
             sentence_length = sentence.len()
             for word in sentence.word_list:
                 a_value = a / (a + (self.word_counts[word.text] / self.word_counts_sum)) # smooth inverse frequency, SIF
@@ -91,12 +96,12 @@ class SIF(object):
                 words = preprocess_text(words)
                 if words: 
                     for w in words:
-                        if w in self.embedding_model.wv:
+                        if w in self.embedding_model:
                             word_list.append(Word(w, self.embedding_model[w]))
                         else:
-                            word_list.append(Word(w, np.zeros(self.embed_size)))
+                            word_list.append(Word(w, self.embedding_model.get_dimension()))
                 while(len(word_list) < 2):
-                    word_list.append(Word(w, np.zeros(self.embed_size)))
+                    word_list.append(Word(w, np.zeros(self.embedding_model.get_dimension())))
                 sentence_list.append(Sentence(word_list))
             docs_list.append(sentence_list)
         return docs_list
@@ -122,7 +127,7 @@ class SIF(object):
         docs_embeddings = []
 
         for doc in docs_list:
-            docs_embeddings.append(self.sentence_to_vec(doc, self.embed_size))
+            docs_embeddings.append(self.sentence_to_vec(doc, self.embedding_model.get_dimension()))
 
         vectors = self.average_vectors(docs_embeddings)
 

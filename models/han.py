@@ -13,6 +13,9 @@ import logging
 from sklearn import metrics
 from utils.preprocess import clean_string
 
+import fasttext
+import fasttext.util
+
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
 
@@ -50,10 +53,15 @@ class HAN(object):
         self.max_features = max_features
         self.max_senten_len = max_senten_len
         self.max_senten_num = max_senten_num
-        self.embed_size = embedding_size
         self.validation_split = validation_split
         self.embedded_dir = pretrained_embedded_vector_path
         self.tokenizer = Tokenizer(num_words=self.max_features, oov_token=True)
+        
+        fasttext.util.download_model('en', if_exists='ignore')
+        self.embedding_model = fasttext.load_model(self.embedded_dir + '.bin')
+        self.embed_size = embedding_size
+        fasttext.util.reduce_model(self.embedding_model, self.embed_size)
+        
         # Initialize default hyperparameters
         # You can change it using `set_hyperparameters` function 
         self.hyperparameters = {
@@ -67,7 +75,7 @@ class HAN(object):
             'metrics' : ['acc'],
             'loss': 'categorical_crossentropy'
         }
-        self.embedding_index = self.add_glove_model()
+        # self.embedding_index = self.add_glove_model()
         self.build_model(text, labels, num_categories)
 
     def build_model(
@@ -236,12 +244,18 @@ class HAN(object):
         embedding_matrix = np.random.random((len(self.tokenizer.word_index), self.embed_size))
         absent_words = 0
         for word, i in self.tokenizer.word_index.items():
-            embedding_vector = self.embedding_index.get(word)
-            if embedding_vector is not None:
-                # words not found in embedding index will be all-zeros.
-                embedding_matrix[i] = embedding_vector
-            else:
-                absent_words += 1
+            if isinstance(word, str):
+                if word in self.embedding_model:
+                    embedding_matrix[i] = self.embedding_model[word]
+                else:
+                    embedding_matrix[i] = np.zeros(self.embed_size)
+                # embedding_matrix[i] = self.embedding_model[word]
+            # embedding_vector = self.embedding_index.get(word)
+            # if embedding_vector is not None:
+            #     # words not found in embedding index will be all-zeros.
+            #     embedding_matrix[i] = embedding_vector
+            # else:
+            #     absent_words += 1
         if self.verbose == 1:
             logging.info("Total absent words are %s" % absent_words + " which is %0.2f" %
                 (absent_words * 100 / len(self.tokenizer.word_index)) + "% of total words")

@@ -104,3 +104,8 @@ D. Greene and P. Cunningham. "Practical Solutions to the Problem of Diagonal Dom
 ### News Category Dataset
 
 [https://rishabhmisra.github.io/publications/](https://rishabhmisra.github.io/publications/)
+
+
+### fastText model
+
+https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip

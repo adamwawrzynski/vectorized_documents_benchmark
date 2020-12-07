@@ -242,7 +242,7 @@ bow = BOWModel(
     min_df=1)
 
 # benchmark_models = [bow, tfidf, lsa, lda, sif, psif, doc2vecdm, doc2veccbow, han]
-benchmark_models = [han2]
+benchmark_models = [sif, psif]
 
 validator(
     benchmark_models,
