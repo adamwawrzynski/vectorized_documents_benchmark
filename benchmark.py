@@ -9,22 +9,23 @@ from utils.load_dataset import load_news_groups_dataset
 from utils.load_dataset import load_yahoo_answers_dataset
 from utils.load_dataset import load_ohsumed_dataset
 from utils.load_dataset import load_reuters_dataset
-from models.tfidf_model import TfIdfModel
-from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
-from models.lda_model import LDAModel
-from models.lsa_model import LSAModel
-from models.han_model import HANModel
-from models.han_model2 import HAN2Model
-from models.sif_model import SIFModel
-from models.bow_model import BOWModel
-from models.psif_model import PSIFModel
+# from models.tfidf_model import TfIdfModel
+# from models.doc2vec_model import Doc2VecDBOWModel, Doc2VecDMModel
+# from models.lda_model import LDAModel
+# from models.lsa_model import LSAModel
+# from models.han_model import HANModel
+# from models.han_model2 import HAN2Model
+# from models.sif_model import SIFModel
+# from models.bow_model import BOWModel
+# from models.psif_model import PSIFModel
+from models.longformer_model import LongformerBERTModel
 
 import logging
 import multiprocessing
 cores = multiprocessing.cpu_count() - 1
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
 def cross_validation(
@@ -163,86 +164,94 @@ elif args.dataset_name == "ohsumed":
 
 x_train, x_test, y_train, y_test = load_dataset(args.dataset_path)
 
-han2 = HAN2Model(
-    text = x_train['text'],
-    labels = y_train['target'],
-    num_categories = num_categories,
-    pretrained_embedded_vector_path = args.pretrained_path,
-    max_features = 5000000,
-    max_senten_len = 320,
-    max_senten_num = 115,
-    embedding_size = 100,
-    validation_split=0.1,
-    verbose=1,
-    batch_size=16,
-    epochs=100)
-
-han = HANModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    num_categories = num_categories,
-    pretrained_embedded_vector_path = args.pretrained_path,
-    max_features = 5000000,
-    max_senten_len = 320,
-    max_senten_num = 115,
-    embedding_size = 100,
-    validation_split=0.1,
-    verbose=1,
-    batch_size=16,
-    epochs=100)
-
-doc2vecdm = Doc2VecDMModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-doc2veccbow = Doc2VecDBOWModel(
-    negative=10,
-    vector_size=100,
-    window=5,
-    workers=cores,
-    min_count=1)
-
-psif = PSIFModel(
-    pretrained_embedded_vector_path=args.pretrained_path,
+longformer = LongformerBERTModel(
     embedding_size=100,
-    num_clusters=40)
+    num_categories = num_categories,
+    epochs=100,
+    batch_size=4
+)
 
-sif = SIFModel(
-    text = x_train['text'],
-    labels = y_train['target'],
-    pretrained_embedded_vector_path = args.pretrained_path,
-    embedding_size=100)
+# han2 = HAN2Model(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     num_categories = num_categories,
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     max_features = 5000000,
+#     max_senten_len = 320,
+#     max_senten_num = 115,
+#     embedding_size = 100,
+#     validation_split=0.1,
+#     verbose=1,
+#     batch_size=16,
+#     epochs=100)
 
-lda = LDAModel(
-    n_components=100,
-    max_features=None,
-    max_df=0.95,
-    min_df=1,
-    epochs=10,
-    cores=cores)
+# han = HANModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     num_categories = num_categories,
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     max_features = 5000000,
+#     max_senten_len = 320,
+#     max_senten_num = 115,
+#     embedding_size = 100,
+#     validation_split=0.1,
+#     verbose=1,
+#     batch_size=16,
+#     epochs=100)
 
-lsa = LSAModel(
-    svd_features=100,
-    n_features=None,
-    n_iter=10,
-    max_df=0.95,
-    min_df=1)
+# doc2vecdm = Doc2VecDMModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
 
-tfidf = TfIdfModel(
-    n_features=None,
-    max_df=0.95,
-    min_df=1)
+# doc2veccbow = Doc2VecDBOWModel(
+#     negative=10,
+#     vector_size=100,
+#     window=5,
+#     workers=cores,
+#     min_count=1)
 
-bow = BOWModel(
-    max_features=None,
-    max_df=0.95,
-    min_df=1)
+# psif = PSIFModel(
+#     pretrained_embedded_vector_path=args.pretrained_path,
+#     embedding_size=100,
+#     num_clusters=40)
+
+# sif = SIFModel(
+#     text = x_train['text'],
+#     labels = y_train['target'],
+#     pretrained_embedded_vector_path = args.pretrained_path,
+#     embedding_size=100)
+
+# lda = LDAModel(
+#     n_components=100,
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=1,
+#     epochs=10,
+#     cores=cores)
+
+# lsa = LSAModel(
+#     svd_features=100,
+#     n_features=None,
+#     n_iter=10,
+#     max_df=0.95,
+#     min_df=1)
+
+# tfidf = TfIdfModel(
+#     n_features=None,
+#     max_df=0.95,
+#     min_df=1)
+
+# bow = BOWModel(
+#     max_features=None,
+#     max_df=0.95,
+#     min_df=1)
 
 # benchmark_models = [bow, tfidf, lsa, lda, sif, psif, doc2vecdm, doc2veccbow, han]
-benchmark_models = [sif, psif]
+# benchmark_models = [sif, psif, han, han2]
+benchmark_models = [longformer]
 
 validator(
     benchmark_models,

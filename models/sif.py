@@ -34,7 +34,7 @@ class SIF(object):
         # self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
         self.embedding_model = fasttext.load_model(pretrained_embedded_vector_path + '.bin')
         self.embedding_size = embedding_size
-        # fasttext.util.reduce_model(self.embedding_model, self.embedding_size)
+        fasttext.util.reduce_model(self.embedding_model, self.embedding_size)
         self.text = pd.Series(text)
         self.categories = pd.Series(labels)
         self.classes = self.categories.unique().tolist()

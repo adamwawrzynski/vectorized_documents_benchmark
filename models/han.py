@@ -352,7 +352,7 @@ class HAN(object):
         batch_size -- size of a batch
         """
         checkpoint = ModelCheckpoint(
-            "han_best_model3.weights",
+            "han_best_model0.weights",
             verbose=0,
             monitor='val_loss',
             save_best_only=True,
@@ -381,7 +381,7 @@ class HAN(object):
         self.classes = self.categories.unique().tolist()
         data, _ = self.preprocessing(self.text, y_dataset)
 
-        self.model.load_weights("han_best_model3.weights")
+        self.model.load_weights("han_best_model0.weights")
         y_pred = self.model.predict(data)
         result = metrics.accuracy_score(y_dataset, y_pred)
         logging.info("Accuracy: %.3f" % result)
