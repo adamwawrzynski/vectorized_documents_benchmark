@@ -9,6 +9,8 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import torch
 import numpy
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def compute_metrics(pred):
     labels = pred.label_ids
@@ -32,13 +34,13 @@ class CustomDataset(torch.utils.data.Dataset):
         self.input_length = input_length
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.dataset)
 
     def convert_to_features(self, example_batch):
         input_ = example_batch['text']
-        target = example_batch['label']
+        label = example_batch['label']
 
-        source = self.tokenizer.encode(
+        source = self.tokenizer(
             input_,
             max_length=self.input_length, 
             padding='max_length',
@@ -48,33 +50,21 @@ class CustomDataset(torch.utils.data.Dataset):
             return_tensors="pt"
         )
         
-        target = self.tokenizer.encode(
-            target,
-            max_length=self.input_length, 
-            padding='max_length',
-            truncation=True,
-            add_special_tokens=True,
-            return_attention_mask=True,
-            return_tensors="pt"
-        )
-
+        target = torch.tensor(label)
 
         return source, target
 
     def __getitem__(self, index):
         source, target = self.convert_to_features(self.dataset[index])
+        
+        source_ids = source["input_ids"].squeeze(0)
+        src_mask  = source["attention_mask"].squeeze(0)
+        # token_type_ids = target["token_type_ids"].squeeze(0)
 
-        source_ids = source["input_ids"].squeeze()
-        target_ids = target["input_ids"].squeeze()
-
-        src_mask  = source["attention_mask"].squeeze()
-        target_mask = target["attention_mask"].squeeze()
-
-        return {"source_ids": source_ids.to(dtype=torch.long),
-                "source_mask": src_mask.to(dtype=torch.long),
-                "target_ids": target_ids.to(dtype=torch.long),
-                "target_mask": target_mask.to(dtype=torch.long)}
-
+        return {"input_ids": source_ids.to(dtype=torch.long),
+                "attention_mask": src_mask.to(dtype=torch.long),
+                # "token_type_ids": token_type_ids.to(dtype=torch.long),
+                "labels": target.to(dtype=torch.long)}
 
 
 def load_custom_dataset(tokenizer, x, y, mode, input_length):
@@ -110,8 +100,8 @@ class LongformerBERTModel(BenchmarkModel):
         validation_split=0.2, 
         verbose=1,
         epochs=10,
-        batch_size=8,
-        input_length=1024,
+        batch_size=1,
+        input_length=4096,
     ):
         super().__init__()
         self.embedding_size = embedding_size
@@ -127,6 +117,7 @@ class LongformerBERTModel(BenchmarkModel):
         super().build_model()
         self.tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
         self.model = LongformerForSequenceClassification.from_pretrained("allenai/longformer-base-4096")
+        self.model.to("cuda")
 
     def train(
         self,
