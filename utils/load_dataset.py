@@ -69,19 +69,6 @@ def load_reuters_dataset(path):
 
     return x_train, x_test, y_train, y_test
 
-# def load_ohsumed_dataset(path):
-#     assert os.path.isdir(path)
-
-#     data = load_files(path,
-#         encoding="utf-8",
-#         decode_error="ignore")
-
-#     y = pd.DataFrame(data.target, columns=['target'])
-#     x = pd.DataFrame(data.data, columns=['text'])
-
-#     return x, y
-
-
 def load_ohsumed_dataset(path):
     assert os.path.isdir(path)
 

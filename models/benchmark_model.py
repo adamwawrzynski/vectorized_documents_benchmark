@@ -10,16 +10,8 @@ from sklearn.svm import SVC
 class BenchmarkModel(ABC):
     def __init__(
         self,
-        n_neighbors=3,
-        algorithm='brute',
-        metric='cosine',
-        n_jobs=1
     ):
         super().__init__()
-        self.n_neighbors = n_neighbors
-        self.algorithm = algorithm
-        self.metric = metric
-        self.n_jobs = n_jobs
 
     def build_model(
         self
@@ -27,7 +19,8 @@ class BenchmarkModel(ABC):
         self.model = None   # assigned in concrete classes
         self.clf = SVC(
             kernel='linear',
-            class_weight='balanced')
+            class_weight='balanced',
+        )
 
     @abstractmethod
     def preprocess_data(

@@ -1,4 +1,4 @@
-numpy==1.16.4
+numpy==1.16.6
 pandas==0.24.2
 nltk==3.4.1
 gensim==3.8.0
@@ -7,10 +7,14 @@ beautifulsoup4==4.8.0
 h5py==2.9.0
 scikit-learn==0.20.3
 Keras==2.1.4
-Keras-Applications==1.0.7
-Keras-Preprocessing==1.0.9
+Keras-Applications==1.0.8
+Keras-Preprocessing==1.1.0
 keras-self-attention==0.42.0
-tensorflow==1.13.1
-tensorflow-estimator==1.13.0
-tensorflow-gpu==1.13.1
 contractions
+tensorboard==1.15.0
+tensorflow==1.15.2
+tensorflow-estimator==1.15.1
+tensorflow-gpu==1.15.0
+transformers==4.0.0
+torch==1.6.0
+regex==2021.3.17

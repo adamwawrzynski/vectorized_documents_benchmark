@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 class TfIdfModel(BenchmarkModel):
     def __init__(
         self,
-        n_features=1000,
+        n_features=None,
         max_df=1,
         min_df=1
     ):

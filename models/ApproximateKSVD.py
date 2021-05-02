@@ -3,6 +3,8 @@ import numpy as np
 import scipy as sp
 from sklearn.linear_model import orthogonal_mp_gram
 
+# Implementation based on: https://github.com/vgupta123/P-SIF
+# Author: https://github.com/vgupta123
 
 class ApproximateKSVD(object):
     def __init__(self, n_components, max_iter=10, tol=1e-6,

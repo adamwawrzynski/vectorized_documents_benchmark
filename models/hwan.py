@@ -1,29 +1,28 @@
-import logging
-import os
-
-import keras
-import numpy as np
 import pandas as pd
+import numpy as np
+from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from keras import regularizers
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.layers import Embedding, Input, Dense, GRU, Bidirectional, TimeDistributed, Dropout, Flatten, Lambda
+from keras.layers import Embedding, Input, Dense, GRU, Bidirectional, TimeDistributed, Dropout, Flatten, Multiply, Add, Reshape, BatchNormalization, Activation, Concatenate, Conv1D, GlobalMaxPooling1D, Add
 from keras.models import Model
 from keras.models import load_model
-from keras.preprocessing.text import Tokenizer, text_to_word_sequence
-from keras_self_attention import SeqSelfAttention
 from nltk import tokenize
-from sklearn import metrics
-
 from models.attention_with_context import AttentionWithContext
-from utils.preprocess import clean_string
-
+from gensim.models import KeyedVectors
+from gensim.scripts.glove2word2vec import glove2word2vec
+import os
+import logging
+from sklearn import metrics
+from utils.preprocess import clean_string, preprocess_text
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from keras.utils import multi_gpu_model
 
 # Implementation based on: https://github.com/Hsankesara/DeepResearch
 # Author: https://github.com/Hsankesara
 
-class HANSelfAttention(object):
+class HWAN(object):
     """
-    HAN model is implemented here.
+    HWAN model is implemented here.
     """
     def __init__(
         self,
@@ -35,22 +34,11 @@ class HANSelfAttention(object):
         max_senten_num,
         embedding_size,
         num_categories=None,
-        validation_split=0.2, 
-        verbose=1
+        validation_split=0.2,
+        verbose=True,
+        features_algorithm="bow",
+        features_operation="add",
     ):
-        """Initialize the HAN module
-        Keyword arguments:
-        text -- list of the articles for training.
-        labels -- labels corresponding the given `text`.
-        pretrained_embedded_vector_path -- path of any pretrained vector
-        max_features -- max features embeddeding matrix can have. To more checkout https://keras.io/layers/embeddings/
-        max_senten_len -- maximum sentence length. It is recommended not to use the maximum one but the one that covers 0.95 quatile of the data.
-        max_senten_num -- maximum number of sentences. It is recommended not to use the maximum one but the one that covers 0.95 quatile of the data.
-        embedding_size -- size of the embedding vector
-        num_categories -- total number of categories.
-        validation_split -- train-test split. 
-        verbose -- how much you want to see.
-        """
         self.verbose = verbose
         self.max_features = max_features
         self.max_senten_len = max_senten_len
@@ -59,20 +47,42 @@ class HANSelfAttention(object):
         self.validation_split = validation_split
         self.embedded_dir = pretrained_embedded_vector_path
         self.tokenizer = Tokenizer(num_words=self.max_features, oov_token=True)
+        
+        self.embedded_dir = pretrained_embedded_vector_path
+        if not os.path.isfile(pretrained_embedded_vector_path+".word2vec"):
+            glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
+        self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        self.embed_size = embedding_size
+
+        self.features_operation = features_operation.lower()
+        if self.features_operation not in ["add", "mul", "concat"]:
+            raise Exception(f"""Incorrect argument "features_operation": {features_operation}. \
+                            Plausible values: [add, mul, concat]""")
+        
         # Initialize default hyperparameters
         # You can change it using `set_hyperparameters` function 
         self.hyperparameters = {
             'l2_regulizer': 1e-13,
             'dropout_regulizer' : 0.5,
             'rnn' : GRU,
-            'rnn_units' : 100,
-            'dense_units': 100,
+            'rnn_units' : 50,
+            'dense_units': self.max_senten_len,
             'activation' : 'softmax',
             'optimizer' : 'adam',
             'metrics' : ['acc'],
             'loss': 'categorical_crossentropy'
         }
         self.embedding_index = self.add_glove_model()
+
+        if features_algorithm.lower() == "bow":
+            self.vectorizer = CountVectorizer(max_features=None)
+        elif features_algorithm.lower() == "tfidf":
+            self.vectorizer = TfidfVectorizer(use_idf=True, max_features=None)
+        elif features_algorithm.lower() == "tf":
+            self.vectorizer = TfidfVectorizer(use_idf=False, max_features=None) 
+        else:
+            raise Exception(f"""Incorrect argument "statistical_features" value: {statistical_features}.""")
+    
         self.build_model(text, labels, num_categories)
 
     def build_model(
@@ -81,6 +91,7 @@ class HANSelfAttention(object):
         labels,
         num_categories=None
     ):
+        self.fitted = False
         try:
             self.text = pd.Series(text)
             self.categories = pd.Series(labels)
@@ -95,10 +106,6 @@ class HANSelfAttention(object):
         self,
         tweaked_instances
     ):
-        """Set hyperparameters of HAN model.
-        Keywords arguemnts:
-        tweaked_instances -- dictionary of all those keys you want to change
-        """
         for  key, value in tweaked_instances.items():
             if key in self.hyperparameters:
                 self.hyperparameters[key] = value
@@ -127,22 +134,44 @@ class HANSelfAttention(object):
     ):
         data = np.zeros((len(texts), self.max_senten_num,
                         self.max_senten_len), dtype='int32')
+        tf = []
         for i, sentences in enumerate(paras):
+            tf_temp = []
             for j, sent in enumerate(sentences):
+
                 if j < self.max_senten_num:
                     wordTokens = text_to_word_sequence(sent)
                     k = 0
                     for _, word in enumerate(wordTokens):
-                        if k < self.max_senten_len and word in self.tokenizer.word_index and self.tokenizer.word_index[word] < self.max_features:
+                        if k < self.max_senten_len and word in self.tokenizer.word_index:
                             data[i, j, k] = self.tokenizer.word_index[word]
                             k = k+1
-        if self.verbose == 1:
+                            tf_temp.append(word)
+            for index in range(len(tf_temp), self.max_senten_num * self.max_senten_len):
+                tf_temp.append('UNKNOWN')
+
+            tf.append(' '.join(tf_temp))
+        self.vectorizer.vocabulary_ = self.tokenizer.word_index
+        tf_vector = self.vectorizer.transform(tf).toarray()
+
+        tf_prepared = []
+        for index, text in enumerate(tf):
+            tf_prepared_tmp = []
+            for word in text.split():
+                try:
+                    tf_prepared_tmp.append(tf_vector[index][self.vectorizer.vocabulary_[word]])
+                except KeyError:
+                    tf_prepared_tmp.append(0)
+            tf_prepared.append(tf_prepared_tmp)
+        tf_prepared = np.array(tf_prepared)
+
+        if self.verbose:
             logging.info("Total %s unique tokens." % len(self.tokenizer.word_index))
         labels = pd.get_dummies(labels)
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Shape of data tensor: %s" + str(data.shape))
             logging.info("Shape of labels tensor: %s" + str(labels.shape))
-        return data, labels
+        return [tf_prepared, data], labels
 
 
     def preprocessing(
@@ -150,32 +179,34 @@ class HANSelfAttention(object):
         text,
         labels
     ):
-        """Preprocessing of the text to make it more resonant for training
-        """
         paras = []
         texts = []
         for sentence in text:
-            text = clean_string(sentence)
-            texts.append(text)
-            sentences = tokenize.sent_tokenize(text)
+            text2 = clean_string(sentence)
+            texts.append(text2)
+            sentences = tokenize.sent_tokenize(text2)
             paras.append(sentences)
-        self.tokenizer.fit_on_texts(texts)
+        if not self.fitted:
+            self.vectorizer.fit(texts)
+            self.tokenizer.word_index = self.vectorizer.vocabulary_
+            self.vectorizer.vocabulary_ = self.tokenizer.word_index
+            self.fitted = True
         return self.processed_data(texts, pd.Series(labels), paras)
 
     def split_dataset(
         self
     ):
-        indices = np.arange(self.data.shape[0])
+        indices = np.arange(self.data[0].shape[0])
         np.random.shuffle(indices)
-        self.data = self.data[indices]
+        self.data = [self.data[0][indices], self.data[1][indices]]
         self.labels = self.labels.iloc[indices]
-        nb_validation_samples = int(self.validation_split * self.data.shape[0])
+        nb_validation_samples = int(self.validation_split * self.data[0].shape[0])
 
-        x_train = self.data[:-nb_validation_samples]
+        x_train = [self.data[0][:-nb_validation_samples], self.data[1][:-nb_validation_samples]]
         y_train = self.labels[:-nb_validation_samples]
-        x_val = self.data[-nb_validation_samples:]
+        x_val = [self.data[0][-nb_validation_samples:], self.data[1][-nb_validation_samples:]]
         y_val = self.labels[-nb_validation_samples:]
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Number of positive and negative reviews in traing and validation set")
             logging.info(y_train.columns.tolist())
             logging.info(y_train.sum(axis=0).tolist())
@@ -185,9 +216,6 @@ class HANSelfAttention(object):
     def get_model(
         self
     ):
-        """
-        Returns the HAN model so that it can be used as a part of pipeline
-        """
         return self.model
 
     def load_model(
@@ -208,9 +236,6 @@ class HANSelfAttention(object):
     def add_glove_model(
         self
     ):
-        """
-        Read and save Pretrained Embedding model
-        """
         embeddings_index = {}
         try:
             f = open(self.embedded_dir)
@@ -231,19 +256,15 @@ class HANSelfAttention(object):
     def get_embedding_matrix(
         self
     ):
-        """
-        Returns Embedding matrix
-        """
-        embedding_matrix = np.random.random((self.max_features, self.embed_size))
+        embedding_matrix = np.random.random((len(self.tokenizer.word_index), self.embed_size))
         absent_words = 0
         for word, i in self.tokenizer.word_index.items():
-            embedding_vector = self.embedding_index.get(word)
-            if embedding_vector is not None:
-                # words not found in embedding index will be all-zeros.
-                embedding_matrix[i] = embedding_vector
-            else:
-                absent_words += 1
-        if self.verbose == 1:
+            if isinstance(word, str):
+                if word in self.embedding_model:
+                    embedding_matrix[i] = self.embedding_model[word]
+                else:
+                    embedding_matrix[i] = np.zeros(self.embed_size)
+        if self.verbose:
             logging.info("Total absent words are %s" % absent_words + " which is %0.2f" %
                 (absent_words * 100 / len(self.tokenizer.word_index)) + "% of total words")
         return embedding_matrix
@@ -251,12 +272,9 @@ class HANSelfAttention(object):
     def get_embedding_layer(
         self
     ):
-        """
-        Returns Embedding layer
-        """
         embedding_matrix = self.get_embedding_matrix()
         return Embedding(
-            self.max_features,
+            len(self.tokenizer.word_index),
             self.embed_size,
             weights=[embedding_matrix],
             input_length=self.max_senten_len,
@@ -267,9 +285,6 @@ class HANSelfAttention(object):
     def set_model(
         self
     ):
-        """
-        Set the HAN model according to the given hyperparameters
-        """
         if self.hyperparameters['l2_regulizer'] is None:
             kernel_regularizer = None
         else:
@@ -279,49 +294,79 @@ class HANSelfAttention(object):
         else:
             dropout_regularizer = self.hyperparameters['dropout_regulizer']
 
-        word_input = Input(shape=(self.max_senten_len,), dtype='float32')
+        input_statistical_features = Input(
+            shape=(self.max_senten_num * self.max_senten_len,),
+            dtype='float32')
+        statistical_features = Reshape(
+            (self.max_senten_num, self.max_senten_len))(input_statistical_features)
+
+        word_input = Input(
+            shape=(self.max_senten_len,),
+            dtype='float32')
         word_sequences = self.get_embedding_layer()(word_input)
         word_lstm = Bidirectional(
-            self.hyperparameters['rnn'](self.hyperparameters['rnn_units'], return_sequences=True, kernel_regularizer=kernel_regularizer))(word_sequences)
+            self.hyperparameters['rnn'](
+                self.hyperparameters['rnn_units'],
+                return_sequences=True,
+                kernel_regularizer=kernel_regularizer,
+                recurrent_dropout=0.2
+                )
+            )(word_sequences)
         word_dense = TimeDistributed(
-            Dense(self.hyperparameters['dense_units'], kernel_regularizer=kernel_regularizer))(word_lstm)
-        self.wordEncoder = Model(word_input, word_dense)
+            Dense(
+                self.hyperparameters['dense_units'],
+                kernel_regularizer=kernel_regularizer)
+            )(word_lstm)
+        word_att = AttentionWithContext()(word_dense)
+        self.wordEncoder = Model(word_input, word_att)
 
-        sent_input = Input(shape=(self.max_senten_num, self.max_senten_len), dtype='float32')
-        word_sequences = self.get_embedding_layer()(word_input)
-        sent_att = SeqSelfAttention(attention_width=None,
-                        attention_type=SeqSelfAttention.ATTENTION_TYPE_ADD,
-                        kernel_regularizer=keras.regularizers.l2(1e-6),
-                        use_attention_bias=True,
-                        attention_activation='softmax',
-                        name='attention_sent')(word_sequences)
-        sent_att2 = SeqSelfAttention(attention_width=None,
-                        attention_type=SeqSelfAttention.ATTENTION_TYPE_ADD,
-                        kernel_regularizer=keras.regularizers.l2(1e-6),
-                        use_attention_bias=True,
-                        attention_activation='softmax',
-                        name='attention_sent')(sent_att)
-        x = Lambda(lambda x: x, output_shape=lambda s:s)(sent_att2)
-        flatten2 = Flatten()(x)
-        sent_att_dropout = Dropout(dropout_regularizer, name="embedding_output")(flatten2)
-        preds = Dense(len(self.classes), activation=self.hyperparameters['activation'])(sent_att_dropout)
-        self.model = Model(sent_input, preds)
+        sent_input = Input(
+            shape=(self.max_senten_num, self.max_senten_len),
+            dtype='float32')
 
+        sent_encoder = TimeDistributed(self.wordEncoder)(sent_input)
+        if self.features_operation == "add":
+            sent_operation = Add()([sent_encoder, statistical_features])
+        elif self.features_operation == "mul":
+            sent_operation = Multiply()([sent_encoder, statistical_features])
+        else:
+            sent_operation = Concatenate()([sent_encoder, statistical_features])
+
+        sent_dense = Dense(self.max_senten_len)(sent_operation)
+        sent_lstm = Bidirectional(
+                self.hyperparameters['rnn'](
+                    self.hyperparameters['rnn_units'],
+                    return_sequences=True,
+                    kernel_regularizer=kernel_regularizer,
+                    recurrent_dropout=0.2)
+                )(sent_dense)
+        sent_distributed = TimeDistributed(
+            Dense(
+                self.embed_size,
+                kernel_regularizer=kernel_regularizer)
+                )(sent_lstm)
+
+        sent_att = AttentionWithContext(name='embedding_output')(sent_distributed)
+        preds = Dense(
+            len(self.classes),
+            activation=self.hyperparameters['activation'])(sent_att)
+        self.model = Model([input_statistical_features, sent_input], preds)
+
+        self.wordEncoder.summary()
         self.model.summary()
         self.model.compile(
-            loss=self.hyperparameters['loss'], optimizer=self.hyperparameters['optimizer'], metrics=self.hyperparameters['metrics'])
-        
+            loss=self.hyperparameters['loss'],
+            optimizer=self.hyperparameters['optimizer'],
+            metrics=self.hyperparameters['metrics'],
+        )
+
     def train(
         self,
-        epochs, 
+        epochs,
         batch_size
     ):
-        """Training the model
-        epochs -- Total number of epochs
-        batch_size -- size of a batch
-        """
         checkpoint = ModelCheckpoint(
-            "han_best_model.weights",
+            "hwan_best_model.weights",
             verbose=0,
             monitor='val_loss',
             save_best_only=True,
@@ -329,20 +374,21 @@ class HANSelfAttention(object):
             mode='auto')
         earlystop = EarlyStopping(
             monitor='val_loss',
-            patience=3)
+            min_delta=0.001,
+            patience=5)
         self.model.fit(
             self.x_train,
             self.y_train,
             validation_data=(self.x_val, self.y_val),
             epochs=epochs,
             batch_size=batch_size,
-            verbose = self.verbose,
+            verbose=self.verbose,
             shuffle=True,
             callbacks=[checkpoint, earlystop])
 
     def evaluate(
         self,
-        dataset, 
+        dataset,
         y_dataset
     ):
         self.text = pd.Series(dataset)
@@ -350,7 +396,7 @@ class HANSelfAttention(object):
         self.classes = self.categories.unique().tolist()
         data, _ = self.preprocessing(self.text, y_dataset)
 
-        self.model.load_weights("han_best_model.weights")
+        self.model.load_weights("hwan_best_model.weights")
         y_pred = self.model.predict(data)
         result = metrics.accuracy_score(y_dataset, y_pred)
         logging.info("Accuracy: %.3f" % result)
@@ -363,3 +409,4 @@ class HANSelfAttention(object):
         combined_path = os.path.join(path, self.__class__.__name__)
         return os.path.isfile(combined_path + "_knn.pickle") and \
             os.path.isfile(combined_path + ".h5")
+
