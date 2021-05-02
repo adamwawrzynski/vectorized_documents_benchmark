@@ -14,7 +14,7 @@ contractions
 tensorboard==1.15.0
 tensorflow==1.15.2
 tensorflow-estimator==1.15.1
-tensorflow-gpu==1.15.0
+tensorflow-gpu==2.4.0
 transformers==4.0.0
 torch==1.6.0
 regex==2021.3.17
