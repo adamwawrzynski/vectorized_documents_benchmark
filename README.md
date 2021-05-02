@@ -34,6 +34,17 @@ conda activate benchmark
 python3 -m pip install -r requirements.txt
 ```
 
+## Execute
+
+To run benchmark activate prepared conda environment and execute simillar command:
+```bash
+CUDA_VISIBLE_DEVICES=7 python3 benchmark.py --dataset_path datasets/bbcsport/ --models_path models/ --pretrained_path embeddings/glove.6B.100d.txt --dataset_name bbc --hwan_features_algorithm tf --hwan_features_operation mul
+```
+where `CUDA_VISIBLE_DEVICES=7` selects one GPU from those available at the machine,
+`hwan_features_algorithm` defines algorithm used to compute statistical features
+(available `bow`, `tf` and `tfidf`) and `hwan_features_operation` defines operation of
+latent variables and statistical features in HWAN (available `add`, `mul` and `concat`).
+
 ## Architecture
 
 Abstract class resides inside [benchmark_model.py](https://github.com/adamwawrzynski/vectorized_documents_benchmark/blob/master/benchmark_model.py). It has 2 abstract methods:
