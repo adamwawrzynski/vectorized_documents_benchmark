@@ -4,10 +4,10 @@ import pickle
 import os
 from keras.models import Model
 from models.benchmark_model import BenchmarkModel
-from models.han2 import HAN2
+from models.hwan import HWAN
 
 
-class HAN2Model(BenchmarkModel):
+class HWANModel(BenchmarkModel):
     def __init__(
         self,
         text,
@@ -19,9 +19,11 @@ class HAN2Model(BenchmarkModel):
         embedding_size,
         num_categories=None,
         validation_split=0.2, 
-        verbose=1,
+        verbose=True,
         epochs=10,
-        batch_size=8
+        batch_size=8,
+        features_algorithm="bow",
+        features_operation="add",
     ):
         super().__init__()
         self.text = text
@@ -36,13 +38,15 @@ class HAN2Model(BenchmarkModel):
         self.verbose = verbose
         self.epochs = epochs
         self.batch_size = batch_size
+        self.features_algorithm = features_algorithm
+        self.features_operation =  features_operation
         self.embedding_model = None
 
     def build_model(
         self
     ):
         super().build_model()
-        self.model = HAN2(
+        self.model = HWAN(
             self.text,
             self.labels,
             self.pretrained_embedded_vector_path,
@@ -52,7 +56,9 @@ class HAN2Model(BenchmarkModel):
             self.embedding_size,
             self.num_categories,
             self.validation_split,
-            self.verbose)
+            self.verbose,
+            self.features_algorithm,
+            self.features_operation)
 
     def train(
         self,

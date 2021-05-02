@@ -8,6 +8,8 @@ from keras.models import Model
 from keras.models import load_model
 from nltk import tokenize
 from models.attention_with_context import AttentionWithContext
+from gensim.models import KeyedVectors
+from gensim.scripts.glove2word2vec import glove2word2vec
 import os
 import logging
 from sklearn import metrics
@@ -17,9 +19,6 @@ from utils.preprocess import clean_string
 # Author: https://github.com/Hsankesara
 
 class HAN(object):
-    """
-    HAN model is implemented here.
-    """
     def __init__(
         self,
         text,
@@ -31,21 +30,8 @@ class HAN(object):
         embedding_size,
         num_categories=None,
         validation_split=0.2, 
-        verbose=1
+        verbose=True,
     ):
-        """Initialize the HAN module
-        Keyword arguments:
-        text -- list of the articles for training.
-        labels -- labels corresponding the given `text`.
-        pretrained_embedded_vector_path -- path of any pretrained vector
-        max_features -- max features embeddeding matrix can have. To more checkout https://keras.io/layers/embeddings/
-        max_senten_len -- maximum sentence length. It is recommended not to use the maximum one but the one that covers 0.95 quatile of the data.
-        max_senten_num -- maximum number of sentences. It is recommended not to use the maximum one but the one that covers 0.95 quatile of the data.
-        embedding_size -- size of the embedding vector
-        num_categories -- total number of categories.
-        validation_split -- train-test split. 
-        verbose -- how much you want to see.
-        """
         self.verbose = verbose
         self.max_features = max_features
         self.max_senten_len = max_senten_len
@@ -54,6 +40,13 @@ class HAN(object):
         self.validation_split = validation_split
         self.embedded_dir = pretrained_embedded_vector_path
         self.tokenizer = Tokenizer(num_words=self.max_features, oov_token=True)
+        
+        self.embedded_dir = pretrained_embedded_vector_path
+        if not os.path.isfile(pretrained_embedded_vector_path+".word2vec"):
+            glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
+        self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        self.embed_size = embedding_size
+        
         # Initialize default hyperparameters
         # You can change it using `set_hyperparameters` function 
         self.hyperparameters = {
@@ -91,10 +84,6 @@ class HAN(object):
         self,
         tweaked_instances
     ):
-        """Set hyperparameters of HAN model.
-        Keywords arguemnts:
-        tweaked_instances -- dictionary of all those keys you want to change
-        """
         for  key, value in tweaked_instances.items():
             if key in self.hyperparameters:
                 self.hyperparameters[key] = value
@@ -132,10 +121,10 @@ class HAN(object):
                         if k < self.max_senten_len and word in self.tokenizer.word_index and self.tokenizer.word_index[word] < self.max_features:
                             data[i, j, k] = self.tokenizer.word_index[word]
                             k = k+1
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Total %s unique tokens." % len(self.tokenizer.word_index))
         labels = pd.get_dummies(labels)
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Shape of data tensor: %s" + str(data.shape))
             logging.info("Shape of labels tensor: %s" + str(labels.shape))
         return data, labels
@@ -146,8 +135,6 @@ class HAN(object):
         text,
         labels
     ):
-        """Preprocessing of the text to make it more resonant for training
-        """
         paras = []
         texts = []
         for sentence in text:
@@ -173,7 +160,7 @@ class HAN(object):
         y_train = self.labels[:-nb_validation_samples]
         x_val = self.data[-nb_validation_samples:]
         y_val = self.labels[-nb_validation_samples:]
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Number of positive and negative reviews in traing and validation set")
             logging.info(y_train.columns.tolist())
             logging.info(y_train.sum(axis=0).tolist())
@@ -183,9 +170,6 @@ class HAN(object):
     def get_model(
         self
     ):
-        """
-        Returns the HAN model so that it can be used as a part of pipeline
-        """
         return self.model
 
     def load_model(
@@ -206,9 +190,6 @@ class HAN(object):
     def add_glove_model(
         self
     ):
-        """
-        Read and save Pretrained Embedding model
-        """
         embeddings_index = {}
         try:
             f = open(self.embedded_dir)
@@ -229,20 +210,17 @@ class HAN(object):
     def get_embedding_matrix(
         self
     ):
-        """
-        Returns Embedding matrix
-        """
-        # embedding_matrix = np.random.random((self.max_features, self.embed_size))
         embedding_matrix = np.random.random((len(self.tokenizer.word_index), self.embed_size))
         absent_words = 0
         for word, i in self.tokenizer.word_index.items():
-            embedding_vector = self.embedding_index.get(word)
-            if embedding_vector is not None:
-                # words not found in embedding index will be all-zeros.
-                embedding_matrix[i] = embedding_vector
+            if isinstance(word, str):
+                if word in self.embedding_model:
+                    embedding_matrix[i] = self.embedding_model[word]
+                else:
+                    embedding_matrix[i] = np.zeros(self.embed_size)
             else:
                 absent_words += 1
-        if self.verbose == 1:
+        if self.verbose:
             logging.info("Total absent words are %s" % absent_words + " which is %0.2f" %
                 (absent_words * 100 / len(self.tokenizer.word_index)) + "% of total words")
         return embedding_matrix
@@ -250,12 +228,8 @@ class HAN(object):
     def get_embedding_layer(
         self
     ):
-        """
-        Returns Embedding layer
-        """
         embedding_matrix = self.get_embedding_matrix()
         return Embedding(
-            #self.max_features,
             len(self.tokenizer.word_index),
             self.embed_size,
             weights=[embedding_matrix],
@@ -267,9 +241,6 @@ class HAN(object):
     def set_model(
         self
     ):
-        """
-        Set the HAN model according to the given hyperparameters
-        """
         if self.hyperparameters['l2_regulizer'] is None:
             kernel_regularizer = None
         else:
@@ -333,10 +304,6 @@ class HAN(object):
         epochs,
         batch_size
     ):
-        """Training the model
-        epochs -- Total number of epochs
-        batch_size -- size of a batch
-        """
         checkpoint = ModelCheckpoint(
             "han_best_model3.weights",
             verbose=0,
@@ -353,7 +320,7 @@ class HAN(object):
             validation_data=(self.x_val, self.y_val),
             epochs=epochs,
             batch_size=batch_size,
-            verbose = self.verbose,
+            verbose=self.verbose,
             shuffle=True,
             callbacks=[checkpoint, earlystop])
 

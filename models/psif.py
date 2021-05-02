@@ -13,21 +13,22 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from models.ApproximateKSVD import ApproximateKSVD
 from utils.preprocess import preprocess_text, process_dataset_2
 
+# Implementation based on: https://github.com/vgupta123/P-SIF
+# Author: https://github.com/vgupta123
 
 class PSIF(object):
     def __init__(
-            self,
-            pretrained_embedded_vector_path,
-            embedding_size=100,
-            num_clusters=40
+        self,
+        pretrained_embedded_vector_path,
+        embedding_size=100,
+        num_clusters=40
     ):
-        if not os.path.isfile(pretrained_embedded_vector_path) or not ".word2vec" in pretrained_embedded_vector_path:
+        self.embedded_dir = pretrained_embedded_vector_path
+        if not os.path.isfile(pretrained_embedded_vector_path+".word2vec"):
             glove2word2vec(pretrained_embedded_vector_path, pretrained_embedded_vector_path+".word2vec")
-        if ".word2vec" in pretrained_embedded_vector_path:
-            self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path)
-        else:
-            self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
+        self.embedding_model = KeyedVectors.load_word2vec_format(pretrained_embedded_vector_path+".word2vec")
         self.embedding_size = embedding_size
+        
         self.num_clusters = num_clusters
 
     def fit(self, X, y=None):

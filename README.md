@@ -16,26 +16,22 @@ Framework for benchmarking different methods used for documents embeddings.
 Program was tested on Ubuntu 18.04 LTS.
 
 To run the **benchmark.py** you need Python3.x (recommended version is
-3.6) and modules listed in **requirements.txt** file.
+3.7) and modules listed in **requirements.txt** file.
 
 ## Getting started
 
-### Installation (Ubuntu)
+### Development Environment
 
-To install all dependencies you have to run the following commands:
-
-```bash
-# install Python3.x nad pip3
-sudo apt-get install -y python3 python3-dev python3-pip
-
-# install all dependencies
-pip3 install -r requirements.txt
-```
-
-Or you can run *setup.sh* script with the following command:
+This step assumes that You have conda installed.To install all dependencies
+you have to run the following commands:
 
 ```bash
-sudo ./setup.sh
+# create virtual environment given name "benchmark", You can change it
+conda create -n benchmark python=3.7
+
+# activate environment
+conda activate benchmark
+python3 -m pip install -r requirements.txt
 ```
 
 ## Architecture
@@ -63,9 +59,14 @@ As long as this steps may differ between different methods of document vectoriza
 
 The common methods are used for handling final KNeighborsClassifier and saving and loading pretrained models.
 
+## Pretrained embeddings
+
+To follow proposed evaluation protocol You have to download and use GloVe embeddings. You can find them here:
+[glove.6B.zip](http://nlp.stanford.edu/data/glove.6B.zip)
+
 ## Datasets
 
-Reuters-21578, Ohsumed and 20 Newsgroups used in this benchmark were downloaded from [enter link description here](http://disi.unitn.it/moschitti/corpora.htm).
+Reuters-21578, Ohsumed and 20 Newsgroups used in this benchmark were downloaded from [http://disi.unitn.it/moschitti/corpora.htm](http://disi.unitn.it/moschitti/corpora.htm).
 
 ### BBC dataset
 [BBC dataset](http://mlg.ucd.ie/datasets/bbc.html) consists of 2 datasets of news articles from BBC News:

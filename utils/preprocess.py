@@ -9,17 +9,29 @@ stops = set(stopwords.words("english"))
 wordnet_lemmatizer = WordNetLemmatizer()
 
 
+def clean_string_longformer(
+        string
+):
+    return preprocess_text_longformer(string)
+
+def preprocess_text_longformer(
+        raw,
+        remove_stopwords=False,
+        lemmatize=False,
+        name_entity_extraction=False,
+        contraction_expanding=False,
+        regex1="[^a-zA-Z0-9'\.\?\!\:\;\"\-,]",
+):
+    text_without_email = re.sub(r'[\w\.-]+@[\w\.-]+', ' ', raw)
+    text = re.sub(regex1, " ", text_without_email)
+    text = re.sub(r'\s+', ' ', text)
+
+    return text
+
+
 def clean_string(
         string
 ):
-#    string = re.sub(r"\\", "", string)
-#    string = re.sub(r"\'", "", string)
-#    string = re.sub(r"\"", "", string)
-#    string = re.sub(r"\.\.\.", ".", string)
-#    string = re.sub(r"\.\.", ".", string)
-#    string = re.sub(r"\?", ".", string)
-#    string = re.sub(r"\!", ".", string)
-#    return string.strip().lower()
     return ' '.join(preprocess_text(string, regex1="[^a-zA-Z'\.\?\!]", regex2="[^a-zA-Z\.\?\!]"))
 
 def preprocess_text(
@@ -31,7 +43,6 @@ def preprocess_text(
         regex1="[^a-zA-Z']",
         regex2="[^a-zA-Z]"
 ):
-    # text_without_email = re.sub("\w*@\w?|\w*@\w*\.{1}\w?|\w*@\w*\.{1}\w*\.{1}\w?|\w*@\w*\.{1}\w*\.{1}\w*\.{1}\w?", " ", raw)
     text_without_email = re.sub(r'[\w\.-]+@[\w\.-]+', ' ', raw)
     text = re.sub(regex1, " ", text_without_email)
 
@@ -55,7 +66,6 @@ def preprocess_text(
         words = [w[0] if isinstance(w, tuple) else " ".join(t[0] for t in w) for w in chunks]
 
     lowercase_words = [w.lower() for w in words if len(w) > 1]
-    # lowercase_words = [w for w in words if len(w) > 1]
     if remove_stopwords:
         words = [w for w in lowercase_words if w not in stops]
     else:

@@ -19,7 +19,7 @@ class HANModel(BenchmarkModel):
         embedding_size,
         num_categories=None,
         validation_split=0.2, 
-        verbose=1,
+        verbose=True,
         epochs=10,
         batch_size=8
     ):
