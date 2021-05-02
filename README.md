@@ -1,7 +1,8 @@
 
-# Doc2Vec methods benchmark
+# Hierarchical Weighted Attention Network
 
-Framework for benchmarking different methods used for documents embeddings.
+Framework for benchmarking different methods used for documents embeddings
+with implementation of original HWAN method.
 
 ## Quick links
 
